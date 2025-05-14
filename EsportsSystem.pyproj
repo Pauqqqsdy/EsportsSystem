@@ -60,6 +60,7 @@
     <Content Include="app\templates\app\password_reset_form.html" />
     <Content Include="app\templates\app\profile.html" />
     <Content Include="app\templates\app\register.html" />
+    <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />
     <Content Include="app\static\app\content\bootstrap.css" />

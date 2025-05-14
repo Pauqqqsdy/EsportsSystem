@@ -1,8 +1,38 @@
 ﻿{% extends "app/layout.html" %}
 
 {% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">Турниры для Вас</h1>
 
-<h2>{{ title }}.</h2>
-<h3>{{ message }}</h3>
+    {% if user.is_authenticated %}
+    <div class="text-right mb-4">
+        <a href="{% url 'create_tournament' %}" class="btn btn-primary">
+            Создать новый турнир
+        </a>
+    </div>
+    {% endif %}
 
+    <div class="row">
+        {% for tournament in tournaments %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h3 class="card-title">{{ tournament.name }}</h3>
+                    <p class="card-text">{{ tournament.description|truncatechars:150 }}</p>
+                    <div class="text-muted mb-2">
+                        <small>Создатель: {{ tournament.creator.username }}</small><br>
+                        <small>Дата начала: {{ tournament.start_date|date:"d.m.Y H:i" }}</small><br>
+                        <small>Дата окончания: {{ tournament.end_date|date:"d.m.Y H:i" }}</small>
+                    </div>
+                    <a href="#" class="btn btn-outline-primary">Подробнее</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">На данный момент нет активных турниров.</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}

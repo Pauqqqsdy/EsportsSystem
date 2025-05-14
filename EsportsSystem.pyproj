@@ -57,6 +57,7 @@
     <Folder Include="EsportsSystem\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="app\templates\app\password_reset_form.html" />
     <Content Include="app\templates\app\profile.html" />
     <Content Include="app\templates\app\register.html" />

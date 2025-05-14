@@ -13,7 +13,9 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('tournaments/', views.tournaments, name='tournaments'),
     path('profile/', views.profile, name='profile'),
-    
+    path('tournaments/', views.tournaments, name='tournaments'),
+    path('tournaments/create/', views.create_tournament, name='create_tournament'),
+
     # Аутентификация
     path('login/',
          auth_views.LoginView.as_view(

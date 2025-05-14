@@ -1,4 +1,4 @@
-"""
+﻿"""
 Django settings for EsportsSystem project.
 
 Based on 'django-admin startproject' using Django 2.1.2.
@@ -111,3 +111,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.yandex.ru'  # или другой SMTP-сервер
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'ваш@email.com'
+EMAIL_HOST_PASSWORD = 'ваш_пароль'
+DEFAULT_FROM_EMAIL = 'ваш@email.com'

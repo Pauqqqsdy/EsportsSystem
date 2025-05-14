@@ -1,0 +1,12 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<h2>Мой профиль</h2>
+<div class="row">
+    <div class="col-md-12">
+        <p>Добро пожаловать, {{ user.username }}!</p>
+        <p>Email: {{ user.email }}</p>
+        <!-- Другая информация профиля -->
+    </div>
+</div>
+{% endblock %}

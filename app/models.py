@@ -12,7 +12,7 @@ class Tournament(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Активный")
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-created_at']  # Сортировка по дате создания (новые сначала)
         verbose_name = 'Турнир'
         verbose_name_plural = 'Турниры'
 

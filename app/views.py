@@ -43,19 +43,6 @@ def profile(request):
         'year': datetime.now().year,
     })
 
-@login_required
-def create_tournament(request):
-    if request.method == 'POST':
-        form = TournamentForm(request.POST)
-        if form.is_valid():
-            tournament = form.save(commit=False)
-            tournament.creator = request.user
-            tournament.save()
-            return redirect('tournaments')
-    else:
-        form = TournamentForm()
-    return render(request, 'app/create_tournament.html', {'form': form})
-
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)

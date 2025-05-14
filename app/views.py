@@ -29,8 +29,7 @@ def tournaments(request):
         request,
         'app/tournaments.html',
         {
-            'title':'Турниры',
-            'message':'Список турниров.',
+            'title':'Последние турниры',
             'year':datetime.now().year,
         }
     )

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import gettext_lazy as _
-from .models import Tournament
+from .models import Tournament, UserProfile
 from django.contrib.admin import widgets
 
 class BootstrapAuthenticationForm(AuthenticationForm):
@@ -28,3 +28,8 @@ class TournamentForm(forms.ModelForm):
         super(TournamentForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-control'})
+
+class AvatarUploadForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['avatar']  # Показываем только поле аватара

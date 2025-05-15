@@ -62,3 +62,16 @@ class Tournament(models.Model):
 
     def __str__(self):
         return self.name
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)  # Связь с пользователем
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        default='avatars/default.jpg',
+        blank=True,
+        null=True
+    )
+    team = models.CharField(max_length=100, blank=True, null=True)  # Команда (опционально)
+    
+    def __str__(self):
+        return f"Профиль {self.user.username}"

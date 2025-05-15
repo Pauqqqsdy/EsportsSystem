@@ -3,10 +3,27 @@
 {% block content %}
 <h2>Мой профиль</h2>
 <div class="row">
-    <div class="col-md-12">
-        <p>Добро пожаловать, {{ user.username }}!</p>
+    <div class="col-md-4">
+        <!-- Аватарка с дефолтным изображением -->
+        <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}/media/avatars/default.jpg{% endif %}"
+             alt="Аватар"
+             width="150"
+             class="img-thumbnail">
+    </div>
+    <div class="col-md-8">
+        <h3>{{ user.username }}</h3>
         <p>Email: {{ user.email }}</p>
-        <!-- Другая информация профиля -->
+        <p>Команда: {% if profile.team %}{{ profile.team }}{% else %}Нет команды{% endif %}</p>
+    </div>
+</div>
+
+<!-- Блок статистики -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h3>Статистика</h3>
+        <div class="statistics-box" style="border: 1px solid #ddd; padding: 15px;">
+            <p>Здесь будет статистика игрока</p>
+        </div>
     </div>
 </div>
 {% endblock %}

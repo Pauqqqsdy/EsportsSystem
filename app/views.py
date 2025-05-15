@@ -9,8 +9,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from .models import Tournament
-from .forms import TournamentForm
+from .models import Tournament, UserProfile
+from .forms import TournamentForm, AvatarUploadForm
 
 def home(request):
     """Renders the home page."""
@@ -78,3 +78,22 @@ def create_tournament(request):
     else:
         form = TournamentForm()
     return render(request, 'app/create_tournament.html', {'form': form})
+
+
+@login_required
+def profile(request):
+    # Получаем или создаём профиль
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = AvatarUploadForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')  # Обновляем страницу
+    else:
+        form = AvatarUploadForm(instance=profile)
+    
+    return render(request, 'app/profile.html', {
+        'profile': profile,
+        'form': form
+    })

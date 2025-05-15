@@ -119,3 +119,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your@email.com'
 EMAIL_HOST_PASSWORD = 'your_password'
 DEFAULT_FROM_EMAIL = 'your@email.com'
+
+# Настройки для медиафайлов (аватарок)
+MEDIA_URL = '/media/'
+os.path.join(BASE_DIR, 'media')
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

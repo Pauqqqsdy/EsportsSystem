@@ -32,7 +32,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'app',
     # Add your apps here to enable them
-    'django.contrib.admin',
+    # 'django.contrib.admin', 
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -59,7 +59,7 @@ ROOT_URLCONF = 'EsportsSystem.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -101,11 +101,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'ru-RU'
+TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
+
+ADMIN_URL = 'secret-admin/'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
@@ -114,8 +116,9 @@ STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.yandex.ru'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_PORT = 465
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'your@email.com'
 EMAIL_HOST_PASSWORD = 'your_password'
 DEFAULT_FROM_EMAIL = 'your@email.com'
@@ -124,3 +127,21 @@ DEFAULT_FROM_EMAIL = 'your@email.com'
 MEDIA_URL = '/media/'
 os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+PASSWORD_RESET_TEMPLATES = {
+    'password_reset_form': 'registration/password_reset_form.html',
+    'password_reset_done': 'registration/password_reset_done.html',
+    'password_reset_confirm': 'registration/password_reset_confirm.html',
+    'password_reset_complete': 'registration/password_reset_complete.html',
+    'password_reset_email': 'registration/password_reset_email.html',
+    'password_reset_subject': 'registration/password_reset_subject.txt',
+}
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'
+LOGOUT_REDIRECT_URL = 'home'
+
+SITE_ID = 1
+SITE_NAME = "ZXC.Tournament"
+
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')

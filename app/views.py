@@ -10,7 +10,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from .models import Tournament, UserProfile
-from .forms import TournamentForm, AvatarUploadForm
+from .forms import TournamentForm, AvatarUploadForm, ExtendedUserCreationForm
 
 def home(request):
     """Renders the home page."""
@@ -96,4 +96,26 @@ def profile(request):
     return render(request, 'app/profile.html', {
         'profile': profile,
         'form': form
+    })
+
+def register(request):
+    if request.method == 'POST':
+        form = ExtendedUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            email = form.cleaned_data['email']
+            user.email = email
+            user.save()
+            
+            # Создаем профиль пользователя
+            UserProfile.objects.create(user=user)
+            
+            messages.success(request, 'Аккаунт успешно создан! Теперь вы можете войти.')
+            return redirect('login')
+    else:
+        form = ExtendedUserCreationForm()
+    return render(request, 'app/register.html', {
+        'form': form,
+        'title': 'Регистрация',
+        'year': datetime.now().year,
     })

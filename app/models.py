@@ -64,14 +64,15 @@ class Tournament(models.Model):
         return self.name
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)  # Связь с пользователем
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    email_confirmed = models.BooleanField(default=False)
     avatar = models.ImageField(
         upload_to='avatars/',
         default='avatars/default.jpg',
         blank=True,
         null=True
     )
-    team = models.CharField(max_length=100, blank=True, null=True)  # Команда (опционально)
+    team = models.CharField(max_length=100, blank=True, null=True)
     
     def __str__(self):
-        return f"Профиль {self.user.username}"
+        return self.user.username

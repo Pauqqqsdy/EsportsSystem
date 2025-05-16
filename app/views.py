@@ -10,7 +10,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from .models import Tournament, UserProfile
-from .forms import TournamentForm, AvatarUploadForm, ExtendedUserCreationForm
+from .forms import TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, User
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 
 def home(request):
     """Renders the home page."""
@@ -23,6 +25,28 @@ def home(request):
             'year':datetime.now().year,
         }
     )
+
+def register(request):
+    if request.method == 'POST':
+        form = ExtendedUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            email = form.cleaned_data['email']
+            user.email = email
+            user.save()
+            
+            # Создаем профиль пользователя
+            UserProfile.objects.create(user=user)
+            
+            messages.success(request, 'Аккаунт успешно создан! Теперь вы можете войти.')
+            return redirect('login')
+    else:
+        form = ExtendedUserCreationForm()
+    return render(request, 'app/register.html', {
+        'form': form,
+        'title': 'Регистрация',
+        'year': datetime.now().year,
+    })
 
 def tournaments(request):
     """Renders the about page."""
@@ -40,22 +64,6 @@ def tournaments(request):
 def profile(request):
     return render(request, 'app/profile.html', {
         'title': 'Мой профиль',
-        'year': datetime.now().year,
-    })
-
-def register(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Аккаунт создан! Теперь вы можете войти.')
-            return redirect('login')
-    else:
-        form = UserCreationForm()
-    return render(request, 'app/register.html', {
-        'form': form,
-        'title': 'Регистрация',
         'year': datetime.now().year,
     })
 
@@ -82,9 +90,11 @@ def create_tournament(request):
 
 @login_required
 def profile(request):
-    # Получаем или создаём профиль
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
-    
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        profile = UserProfile.objects.create(user=request.user, bio='')
+
     if request.method == 'POST':
         form = AvatarUploadForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
@@ -98,24 +108,40 @@ def profile(request):
         'form': form
     })
 
-def register(request):
+@login_required
+def edit_profile(request):
     if request.method == 'POST':
-        form = ExtendedUserCreationForm(request.POST)
+        form = AvatarUploadForm(request.POST, request.FILES, instance=request.user.userprofile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = AvatarUploadForm(instance=request.user.userprofile)
+    return render(request, 'app/edit_profile.html', {'form': form})
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
-            email = form.cleaned_data['email']
-            user.email = email
-            user.save()
-            
-            # Создаем профиль пользователя
-            UserProfile.objects.create(user=user)
-            
-            messages.success(request, 'Аккаунт успешно создан! Теперь вы можете войти.')
-            return redirect('login')
+            update_session_auth_hash(request, user)  # Важно, чтобы пользователь не разлогинился
+            messages.success(request, 'Пароль успешно изменен!')
+            return redirect('profile')
     else:
-        form = ExtendedUserCreationForm()
-    return render(request, 'app/register.html', {
+        form = PasswordChangeForm(request.user)
+    return render(request, 'app/change_password.html', {
         'form': form,
-        'title': 'Регистрация',
-        'year': datetime.now().year,
+        'title': 'Смена пароля'
+    })
+
+def view_profile(request, username):
+    user = User.objects.get(username=username)
+    profile = UserProfile.objects.get(user=user)
+    is_owner = (request.user == user)
+    
+    return render(request, 'app/view_profile.html', {
+        'profile_user': user,
+        'profile': profile,
+        'is_owner': is_owner,
     })

@@ -1,7 +1,7 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<h2>Мой профиль</h2>
+<h2>Профиль пользователя {{ profile_user.username }}</h2>
 <div class="row">
     <div class="col-md-4">
         <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}/media/avatars/default.jpg{% endif %}"
@@ -10,14 +10,11 @@
              class="img-thumbnail">
     </div>
     <div class="col-md-8">
-        <h3>{{ user.username }}</h3>
-        <p>Email: {{ user.email }}</p>
+        <h3>{{ profile_user.username }}</h3>
+        {% if is_owner %}
+        <p>Email: {{ profile_user.email }}</p>
+        {% endif %}
         <p>Команда: {% if profile.team %}{{ profile.team }}{% else %}Нет команды{% endif %}</p>
-
-        <div class="mt-3">
-            <a href="{% url 'edit_profile' %}" class="btn btn-primary">Редактировать профиль</a>
-            <a href="{% url 'change_password' %}" class="btn btn-secondary">Сменить пароль</a>
-        </div>
     </div>
 </div>
 {% endblock %}

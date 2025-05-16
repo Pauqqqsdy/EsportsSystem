@@ -60,9 +60,11 @@
     <Folder Include="EsportsSystem\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="app\templates\app\base.html" />
     <Content Include="app\templates\app\base_page_for_changing_password.html" />
+    <Content Include="app\templates\app\change_password.html" />
     <Content Include="app\templates\app\create_tournament.html" />
+    <Content Include="app\templates\app\edit_profile.html" />
+    <Content Include="app\templates\app\view_profile.html" />
     <Content Include="app\templates\registration\password_reset_comleted.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />

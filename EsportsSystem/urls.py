@@ -16,7 +16,10 @@ urlpatterns = [
     path('tournaments/', views.tournaments, name='tournaments'),
     path('profile/', views.profile, name='profile'),
     path('tournaments/create/', views.create_tournament, name='create_tournament'),
-    
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/change_password/', views.change_password, name='change_password'),
+    path('user/<str:username>/', views.view_profile, name='view_profile'),
+
     # Аутентификация
     path('login/',
          auth_views.LoginView.as_view(

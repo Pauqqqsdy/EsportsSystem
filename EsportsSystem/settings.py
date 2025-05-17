@@ -115,13 +115,14 @@ STATIC_URL = '/static/'
 STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.yandex.ru'
-EMAIL_PORT = 465
-EMAIL_USE_TLS = False
+EMAIL_HOST = 'smtp.mail.ru'
+EMAIL_PORT = 465  # Для SSL
 EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'your@email.com'
-EMAIL_HOST_PASSWORD = 'your_password'
-DEFAULT_FROM_EMAIL = 'your@email.com'
+EMAIL_USE_TLS = False  # Не используем одновременно SSL и TLS
+EMAIL_HOST_USER = 'zxc.tournament@mail.ru'  # Полный email
+EMAIL_HOST_PASSWORD = 'BNiDKDuP28tAHBjGwria'  # Пароль от почты или пароль приложения
+DEFAULT_FROM_EMAIL = 'zxc.tournament@mail.ru'  # Должен совпадать с EMAIL_HOST_USER
+SERVER_EMAIL = 'zxc.tournament@mail.ru'  # Для отправки системных сообщений
 
 # Настройки для медиафайлов (аватарок)
 MEDIA_URL = '/media/'

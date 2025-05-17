@@ -1,20 +1,13 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<h2>Профиль пользователя {{ profile_user.username }}</h2>
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-12 text-center">
         <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}/media/avatars/default.jpg{% endif %}"
              alt="Аватар"
              width="150"
-             class="img-thumbnail">
-    </div>
-    <div class="col-md-8">
+             class="img-thumbnail mb-2">
         <h3>{{ profile_user.username }}</h3>
-        {% if is_owner %}
-        <p>Email: {{ profile_user.email }}</p>
-        {% endif %}
-        <p>Команда: {% if profile.team %}{{ profile.team }}{% else %}Нет команды{% endif %}</p>
     </div>
 </div>
 {% endblock %}

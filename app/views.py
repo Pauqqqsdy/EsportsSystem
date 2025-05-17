@@ -110,14 +110,19 @@ def profile(request):
 
 @login_required
 def edit_profile(request):
+    profile = request.user.userprofile
     if request.method == 'POST':
-        form = AvatarUploadForm(request.POST, request.FILES, instance=request.user.userprofile)
+        form = AvatarUploadForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
             return redirect('profile')
     else:
-        form = AvatarUploadForm(instance=request.user.userprofile)
-    return render(request, 'app/edit_profile.html', {'form': form})
+        form = AvatarUploadForm(instance=profile)
+    
+    return render(request, 'app/edit_profile.html', {
+        'form': form,
+        'profile': profile
+    })
 
 @login_required
 def change_password(request):

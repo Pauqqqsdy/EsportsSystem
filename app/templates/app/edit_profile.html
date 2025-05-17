@@ -4,9 +4,24 @@
 <h2>Редактирование профиля</h2>
 <div class="row">
     <div class="col-md-6">
+        <div class="mb-3">
+            <h4>Текущий аватар:</h4>
+            <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}/media/avatars/default.jpg{% endif %}"
+                 alt="Аватар"
+                 width="150"
+                 class="img-thumbnail">
+        </div>
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            {{ form.as_p }}
+            <div class="form-group">
+                <label for="id_email">Email</label>
+                <input type="email" name="email" value="{{ form.email.value }}" class="form-control" required id="id_email">
+                <small class="form-text text-muted">Введите действительный email</small>
+            </div>
+            <div class="form-group">
+                <label for="id_avatar">Аватар</label>
+                <input type="file" name="avatar" class="form-control-file" id="id_avatar">
+            </div>
             <button type="submit" class="btn btn-primary">Сохранить</button>
             <a href="{% url 'change_password' %}" class="btn btn-secondary">Сменить пароль</a>
             <a href="{% url 'profile' %}" class="btn btn-outline-secondary">Отмена</a>

@@ -34,17 +34,21 @@ class TournamentForm(forms.ModelForm):
 
 class AvatarUploadForm(forms.ModelForm):
     email = forms.EmailField(required=True, label="Email")
-    team = forms.CharField(max_length=100, required=False, label="Команда")
-    bio = forms.CharField(widget=forms.Textarea, required=False, label="О себе")
 
     class Meta:
         model = UserProfile
-        fields = ['avatar', 'team', 'bio']
+        fields = ['avatar']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.user:
             self.fields['email'].initial = self.instance.user.email
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exclude(pk=self.instance.user.pk).exists():
+            raise ValidationError("Пользователь с такой почтой уже зарегистрирован")
+        return email
 
     def save(self, commit=True):
         profile = super().save(commit=False)

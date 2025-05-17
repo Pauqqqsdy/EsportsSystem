@@ -12,7 +12,6 @@
     <div class="col-md-8">
         <h3>{{ user.username }}</h3>
         <p>Email: {{ user.email }}</p>
-        <p>Команда: {% if profile.team %}{{ profile.team }}{% else %}Нет команды{% endif %}</p>
 
         <div class="mt-3">
             <a href="{% url 'edit_profile' %}" class="btn btn-primary">Редактировать профиль</a>

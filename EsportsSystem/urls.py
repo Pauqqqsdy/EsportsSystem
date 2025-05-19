@@ -19,6 +19,12 @@ urlpatterns = [
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change_password/', views.change_password, name='change_password'),
     path('user/<str:username>/', views.view_profile, name='view_profile'),
+    path('team/create/', views.create_team, name='create_team'),
+    path('team/<int:team_id>/', views.team_page, name='team_page'),
+    path('team/join/<str:invite_code>/', views.join_team, name='join_team'),
+    path('team/leave/', views.leave_team, name='leave_team'),
+    path('team/<int:team_id>/delete/', views.delete_team, name='delete_team'),
+    path('team/<int:team_id>/transfer/<int:new_captain_id>/', views.transfer_leadership, name='transfer_leadership'),
 
     # Аутентификация
     path('login/',
@@ -48,13 +54,12 @@ urlpatterns = [
         success_url='/reset/done/'
     ), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
-        template_name='registration/password_reset_complete.html'
+        template_name='registration/password_reset_completed.html'
     ), name='password_reset_complete'),
     
     # Регистрация
     path('register/', views.register, name='register'),
     
-    path('profile/', views.profile, name='profile'),
 ]
 
 if settings.DEBUG:

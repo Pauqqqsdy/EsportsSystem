@@ -1,6 +1,9 @@
 ﻿from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 
 class Tournament(models.Model):
     DISCIPLINE_CHOICES = [
@@ -77,3 +80,76 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return self.user.username
+
+class Team(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    avatar = models.ImageField(
+        upload_to='team_avatars/',
+        default='team_avatars/default.jpg',
+        blank=True,
+        null=True
+    )
+    captain = models.ForeignKey(User, on_delete=models.CASCADE, related_name='captained_teams')
+    members = models.ManyToManyField(User, related_name='teams')
+    created_at = models.DateTimeField(auto_now_add=True)
+    invite_code = models.CharField(max_length=32, unique=True)
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.invite_code:
+            self.invite_code = get_random_string(32)
+        super().save(*args, **kwargs)
+
+    def member_count(self):
+        return self.members.count()
+
+    def is_full(self):
+        return self.member_count() >= 8
+
+    def is_captain(self, user):
+        return self.captain == user
+
+    def is_member(self, user):
+        return self.members.filter(pk=user.pk).exists()
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    email_confirmed = models.BooleanField(default=False)
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        default='avatars/default.jpg',
+        blank=True,
+        null=True
+    )
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name='team_members')
+    bio = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.user.username
+
+@receiver(pre_delete, sender=User)
+def user_deleted(sender, instance, **kwargs):
+    """Удаляем команду, если при удалении пользователя она осталась пустой"""
+    try:
+        profile = instance.userprofile
+        if profile.team:
+            team = profile.team
+            profile.team = None
+            profile.save()
+            
+            # Если пользователь был капитаном, передаем лидерство или удаляем команду
+            if team.captain == instance:
+                if team.member_count() > 1:
+                    # Назначаем нового капитана (первого попавшегося участника)
+                    new_captain = team.members.exclude(pk=instance.pk).first()
+                    team.captain = new_captain
+                    team.save()
+                else:
+                    # Если участник был один, удаляем команду
+                    team.delete()
+            elif team.member_count() == 0:
+                team.delete()
+    except UserProfile.DoesNotExist:
+        pass

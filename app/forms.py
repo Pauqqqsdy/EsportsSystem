@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
-from .models import Tournament, UserProfile
+from .models import Tournament, UserProfile, Team
 from django.contrib.admin import widgets
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
@@ -86,3 +86,12 @@ class ExtendedUserCreationForm(UserCreationForm):
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
         self.fields['privacy_policy'].widget.attrs.update({'class': 'form-check-input'})
+
+class TeamCreationForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = ['name', 'avatar']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control-file'}),
+        }

@@ -65,6 +65,8 @@
     <Content Include="app\templates\app\create_team.html" />
     <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="app\templates\app\edit_profile.html" />
+    <Content Include="app\templates\app\privacy_policy.html" />
+    <Content Include="app\templates\app\service_terms.html" />
     <Content Include="app\templates\app\team_page.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />

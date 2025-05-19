@@ -32,18 +32,16 @@ def register(request):
     if request.method == 'POST':
         form = ExtendedUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            email = form.cleaned_data['email']
-            user.email = email
+            user = form.save(commit=False)
+            user.email = form.cleaned_data['email']
             user.save()
             
-            # Создаем профиль пользователя
             UserProfile.objects.create(user=user)
-            
-            messages.success(request, 'Аккаунт успешно создан! Теперь вы можете войти.')
+            messages.success(request, 'Регистрация прошла успешно! Теперь вы можете войти.')
             return redirect('login')
     else:
         form = ExtendedUserCreationForm()
+    
     return render(request, 'app/register.html', {
         'form': form,
         'title': 'Регистрация',
@@ -63,9 +61,31 @@ def tournaments(request):
     )
 
 @login_required
-def profile(request):
+def profile(request, username=None):
+    if username is None:
+        profile_user = request.user
+    else:
+        profile_user = get_object_or_404(User, username=username)
+    
+    profile, created = UserProfile.objects.get_or_create(user=profile_user)
+    
+    is_owner = (request.user == profile_user)
+    
+    avatar_form = None
+    if is_owner and request.method == 'POST':
+        avatar_form = AvatarUploadForm(request.POST, request.FILES, instance=profile)
+        if avatar_form.is_valid():
+            avatar_form.save()
+            return redirect('profile')
+    elif is_owner:
+        avatar_form = AvatarUploadForm(instance=profile)
+    
     return render(request, 'app/profile.html', {
-        'title': 'Мой профиль',
+        'profile_user': profile_user,
+        'profile': profile,
+        'is_owner': is_owner,
+        'avatar_form': avatar_form,
+        'title': 'Профиль',
         'year': datetime.now().year,
     })
 
@@ -88,27 +108,6 @@ def create_tournament(request):
     else:
         form = TournamentForm()
     return render(request, 'app/create_tournament.html', {'form': form})
-
-
-@login_required
-def profile(request):
-    try:
-        profile = UserProfile.objects.get(user=request.user)
-    except UserProfile.DoesNotExist:
-        profile = UserProfile.objects.create(user=request.user, bio='')
-
-    if request.method == 'POST':
-        form = AvatarUploadForm(request.POST, request.FILES, instance=profile)
-        if form.is_valid():
-            form.save()
-            return redirect('profile')
-    else:
-        form = AvatarUploadForm(instance=profile)
-    
-    return render(request, 'app/profile.html', {
-        'profile': profile,
-        'form': form
-    })
 
 @login_required
 def edit_profile(request):
@@ -250,3 +249,25 @@ def transfer_leadership(request, team_id, new_captain_id):
     team.save()
     messages.success(request, f'Лидерство передано {new_captain.username}')
     return redirect('team_page', team_id=team.id)
+
+def service_terms(request):
+    """Renders the service terms page."""
+    return render(
+        request,
+        'app/service_terms.html',
+        {
+            'title': 'Пользовательское соглашение',
+            'year': datetime.now().year,
+        }
+    )
+
+def privacy_policy(request):
+    """Renders the privacy policy page."""
+    return render(
+        request,
+        'app/privacy_policy.html',
+        {
+            'title': 'Политика конфиденциальности',
+            'year': datetime.now().year,
+        }
+    )

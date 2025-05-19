@@ -15,7 +15,8 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('tournaments/', views.tournaments, name='tournaments'),
     path('profile/', views.profile, name='profile'),
-    path('tournaments/create/', views.create_tournament, name='create_tournament'),
+    path('service_terms/', views.service_terms, name='service_terms'),
+    path('privacy_policy/', views.privacy_policy, name='privacy_policy'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change_password/', views.change_password, name='change_password'),
     path('user/<str:username>/', views.view_profile, name='view_profile'),
@@ -25,6 +26,8 @@ urlpatterns = [
     path('team/leave/', views.leave_team, name='leave_team'),
     path('team/<int:team_id>/delete/', views.delete_team, name='delete_team'),
     path('team/<int:team_id>/transfer/<int:new_captain_id>/', views.transfer_leadership, name='transfer_leadership'),
+    path('tournaments/create/', views.create_tournament, name='create_tournament'),
+
 
     # Аутентификация
     path('login/',

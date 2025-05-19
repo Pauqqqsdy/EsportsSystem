@@ -11,26 +11,52 @@
 
             {% if form.errors %}
             <div class="alert alert-danger">
-                {% for field in form %}
-                {% for error in field.errors %}
+                {% for field, errors in form.errors.items %}
+                {% for error in errors %}
                 <p>{{ error }}</p>
                 {% endfor %}
-                {% endfor %}
-                {% for error in form.non_field_errors %}
-                <p>{{ error }}</p>
                 {% endfor %}
             </div>
             {% endif %}
 
             <div class="form-group">
                 <label for="id_username">Никнейм:</label>
-                {{ form.username }}
-                <small class="form-text text-muted">Это имя будет отображаться другим пользователям</small>
+                <input type="text"
+                       name="username"
+                       id="id_username"
+                       class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                       value="{{ form.username.value|default:'' }}"
+                       maxlength="16"
+                       pattern="[a-zA-Z0-9]+"
+                       title="Только латинские буквы и цифры (макс. 16 символов)"
+                       required>
+                {% if form.username.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.username.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">
+                    Максимум 16 символов. Только латинские буквы и цифры.
+                </small>
             </div>
 
             <div class="form-group">
                 <label for="id_email">Email:</label>
-                {{ form.email }}
+                <input type="email"
+                       name="email"
+                       id="id_email"
+                       class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                       value="{{ form.email.value|default:'' }}"
+                       required>
+                {% if form.email.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.email.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
                 <small class="form-text text-muted">На этот адрес будут приходить уведомления</small>
             </div>
 
@@ -40,18 +66,44 @@
                 <small class="form-text text-muted">
                     Пароль должен содержать минимум 8 символов и не быть слишком простым.
                 </small>
+                {% if form.password1.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in form.password1.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div class="form-group">
                 <label for="id_password2">Подтверждение пароля:</label>
                 {{ form.password2 }}
+                {% if form.password2.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in form.password2.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <div class="form-group form-check">
-                {{ form.privacy_policy }}
+                <input type="checkbox"
+                       name="privacy_policy"
+                       id="id_privacy_policy"
+                       class="form-check-input {% if form.privacy_policy.errors %}is-invalid{% endif %}"
+                       required>
                 <label class="form-check-label" for="id_privacy_policy">
-                    Я согласен с <a href="#" data-toggle="modal" data-target="#privacyPolicyModal">политикой конфиденциальности</a> и <a href="#" data-toggle="modal" data-target="#termsModal">пользовательским соглашением</a>
+                    Я согласен с <a href="{% url 'privacy_policy' %}" target="_blank">политикой конфиденциальности</a>
+                    и <a href="{% url 'service_terms' %}" target="_blank">пользовательским соглашением</a>
                 </label>
+                {% if form.privacy_policy.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.privacy_policy.errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
             <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
@@ -63,36 +115,16 @@
     </div>
 </div>
 
-<!-- Модальные окна для политики и соглашения -->
-<div class="modal fade" id="privacyPolicyModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Политика конфиденциальности</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Здесь текст вашей политики конфиденциальности...
-            </div>
-        </div>
-    </div>
-</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const usernameField = document.getElementById('id_username');
 
-<div class="modal fade" id="termsModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Пользовательское соглашение</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                Здесь текст вашего пользовательского соглашения...
-            </div>
-        </div>
-    </div>
-</div>
+        usernameField.addEventListener('input', function () {
+            this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
+            if (this.value.length > 16) {
+                this.value = this.value.substring(0, 16);
+            }
+        });
+    });
+</script>
 {% endblock %}

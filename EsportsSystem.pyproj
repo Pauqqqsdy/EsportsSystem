@@ -56,16 +56,21 @@
     <Folder Include="app\static\app\scripts\" />
     <Folder Include="app\templates\" />
     <Folder Include="app\templates\app\" />
+    <Folder Include="app\templates\app\auth\" />
+    <Folder Include="app\templates\app\partials\" />
+    <Folder Include="app\templates\app\tournaments\" />
+    <Folder Include="app\templates\app\teams\" />
+    <Folder Include="app\templates\app\profile\" />
     <Folder Include="app\templates\registration\" />
     <Folder Include="EsportsSystem\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="app\templates\app\base_page_for_changing_password.html" />
     <Content Include="app\templates\app\change_password.html" />
     <Content Include="app\templates\app\create_team.html" />
     <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="app\templates\app\edit_profile.html" />
     <Content Include="app\templates\app\privacy_policy.html" />
+    <Content Include="app\templates\app\registration_success.html" />
     <Content Include="app\templates\app\service_terms.html" />
     <Content Include="app\templates\app\team_page.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />

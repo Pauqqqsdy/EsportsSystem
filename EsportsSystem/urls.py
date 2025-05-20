@@ -1,8 +1,4 @@
-﻿"""
-Definition of urls for EsportsSystem.
-"""
-
-from datetime import datetime
+﻿from datetime import datetime
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path

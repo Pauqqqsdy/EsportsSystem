@@ -1,0 +1,31 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="alert alert-success">
+            <h4>Поздравляем! Регистрация прошла успешно!</h4>
+        </div>
+
+        <section id="loginForm">
+            <h4>Войти в аккаунт</h4>
+            <hr />
+            <form action="{% url 'login' %}" method="post" class="form-horizontal">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_username" class="control-label">Логин</label>
+                    <input type="text" name="username" id="id_username" class="form-control" placeholder="Логин" required>
+                </div>
+                <div class="form-group">
+                    <label for="id_password" class="control-label">Пароль</label>
+                    <input type="password" name="password" id="id_password" class="form-control" placeholder="Пароль" required>
+                </div>
+                <div class="form-group">
+                    <input type="hidden" name="next" value="/" />
+                    <input type="submit" value="Войти" class="btn btn-primary" />
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}

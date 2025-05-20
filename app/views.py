@@ -17,7 +17,6 @@ from django.contrib.auth import update_session_auth_hash
 from django.utils.crypto import get_random_string
 
 def home(request):
-    """Renders the home page."""
     assert isinstance(request, HttpRequest)
     return render(
         request,
@@ -37,8 +36,10 @@ def register(request):
             user.save()
             
             UserProfile.objects.create(user=user)
-            messages.success(request, 'Регистрация прошла успешно! Теперь вы можете войти.')
-            return redirect('login')
+            return render(request, 'app/registration_success.html', {
+                'title': 'Регистрация успешна',
+                'year': datetime.now().year,
+            })
     else:
         form = ExtendedUserCreationForm()
     
@@ -48,8 +49,23 @@ def register(request):
         'year': datetime.now().year,
     })
 
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Пароль успешно изменен!')
+            return redirect('profile')
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'app/change_password.html', {
+        'form': form,
+        'title': 'Смена пароля'
+    })
+
 def tournaments(request):
-    """Renders the about page."""
     assert isinstance(request, HttpRequest)
     return render(
         request,
@@ -59,6 +75,26 @@ def tournaments(request):
             'year':datetime.now().year,
         }
     )
+
+def tournaments(request):
+    latest_tournaments = Tournament.objects.filter(is_active=True).order_by('-created_at')[:10]
+    return render(request, 'app/tournaments.html', {
+        'tournaments': latest_tournaments,
+        'title': 'Турниры',
+    })
+
+@login_required
+def create_tournament(request):
+    if request.method == 'POST':
+        form = TournamentForm(request.POST)
+        if form.is_valid():
+            tournament = form.save(commit=False)
+            tournament.creator = request.user
+            tournament.save()
+            return redirect('tournaments')
+    else:
+        form = TournamentForm()
+    return render(request, 'app/create_tournament.html', {'form': form})
 
 @login_required
 def profile(request, username=None):
@@ -89,26 +125,6 @@ def profile(request, username=None):
         'year': datetime.now().year,
     })
 
-def tournaments(request):
-    latest_tournaments = Tournament.objects.filter(is_active=True).order_by('-created_at')[:10]
-    return render(request, 'app/tournaments.html', {
-        'tournaments': latest_tournaments,
-        'title': 'Турниры',
-    })
-
-@login_required
-def create_tournament(request):
-    if request.method == 'POST':
-        form = TournamentForm(request.POST)
-        if form.is_valid():
-            tournament = form.save(commit=False)
-            tournament.creator = request.user
-            tournament.save()
-            return redirect('tournaments')
-    else:
-        form = TournamentForm()
-    return render(request, 'app/create_tournament.html', {'form': form})
-
 @login_required
 def edit_profile(request):
     profile = request.user.userprofile
@@ -123,22 +139,6 @@ def edit_profile(request):
     return render(request, 'app/edit_profile.html', {
         'form': form,
         'profile': profile
-    })
-
-@login_required
-def change_password(request):
-    if request.method == 'POST':
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, 'Пароль успешно изменен!')
-            return redirect('profile')
-    else:
-        form = PasswordChangeForm(request.user)
-    return render(request, 'app/change_password.html', {
-        'form': form,
-        'title': 'Смена пароля'
     })
 
 def view_profile(request, username):
@@ -179,7 +179,7 @@ def join_team(request, invite_code):
             return redirect('profile')
             
         if team.is_full():
-            messages.error(request, 'Команда уже полная (максимум 8 игроков)')
+            messages.error(request, 'Команда уже полная')
         elif team.is_member(request.user):
             messages.warning(request, 'Вы уже в этой команде')
         else:
@@ -213,7 +213,7 @@ def leave_team(request):
     if user_profile.team:
         team = user_profile.team
         if team.is_captain(request.user) and team.member_count() > 1:
-            messages.error(request, 'Вы не можете покинуть команду как капитан. Сначала передайте лидерство.')
+            messages.error(request, 'Вы не можете покинуть команду будучи капитаном.')
             return redirect('team_page', team_id=team.id)
         
         team.members.remove(request.user)
@@ -251,7 +251,6 @@ def transfer_leadership(request, team_id, new_captain_id):
     return redirect('team_page', team_id=team.id)
 
 def service_terms(request):
-    """Renders the service terms page."""
     return render(
         request,
         'app/service_terms.html',
@@ -262,7 +261,6 @@ def service_terms(request):
     )
 
 def privacy_policy(request):
-    """Renders the privacy policy page."""
     return render(
         request,
         'app/privacy_policy.html',

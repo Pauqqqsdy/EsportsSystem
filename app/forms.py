@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 
 
 class BootstrapAuthenticationForm(AuthenticationForm):
-    username = forms.CharField(max_length=254,
+    username = forms.CharField(max_length=16,
                                widget=forms.TextInput({
                                    'class': 'form-control',
                                    'placeholder': 'User name'}))
@@ -93,5 +93,11 @@ class TeamCreationForm(forms.ModelForm):
         fields = ['name', 'avatar']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'avatar': forms.FileInput(attrs={'class': 'form-control-file'}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control-file'})
         }
+    
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        if Team.objects.filter(name__iexact=name).exists():
+            raise forms.ValidationError("Команда с таким названием уже существует")
+        return name

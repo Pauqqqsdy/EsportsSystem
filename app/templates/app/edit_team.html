@@ -1,0 +1,22 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<h2>Редактирование команды</h2>
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <h4>Текущий аватар:</h4>
+            <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}/media/team_avatars/default.jpg{% endif %}"
+                 alt="Аватар команды"
+                 width="150"
+                 class="img-thumbnail">
+        </div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{% url 'team_page' team_id=team.id %}" class="btn btn-outline-secondary">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

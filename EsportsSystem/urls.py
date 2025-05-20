@@ -23,7 +23,8 @@ urlpatterns = [
     path('team/<int:team_id>/delete/', views.delete_team, name='delete_team'),
     path('team/<int:team_id>/transfer/<int:new_captain_id>/', views.transfer_leadership, name='transfer_leadership'),
     path('tournaments/create/', views.create_tournament, name='create_tournament'),
-
+    path('team/<int:team_id>/edit/', views.edit_team, name='edit_team'),
+    path('team/<int:team_id>/remove/<int:member_id>/', views.remove_member, name='remove_member'),
 
     # Аутентификация
     path('login/',

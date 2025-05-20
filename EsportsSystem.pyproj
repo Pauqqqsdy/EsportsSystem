@@ -73,6 +73,7 @@
     <Content Include="app\templates\app\registration_success.html" />
     <Content Include="app\templates\app\service_terms.html" />
     <Content Include="app\templates\app\team_page.html" />
+    <Content Include="app\templates\app\edit_team.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />
@@ -81,7 +82,6 @@
     <Content Include="app\templates\app\register.html" />
     <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="app\templates\registration\password_reset_confirm.html" />
-    <Content Include="app\templates\registration\password_reset_subject.html" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />
     <Content Include="app\static\app\content\bootstrap.css" />

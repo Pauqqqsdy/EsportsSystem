@@ -1,8 +1,4 @@
-﻿"""
-Definition of views.
-"""
-
-from datetime import datetime
+﻿from datetime import datetime
 from django.http import HttpRequest
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
@@ -15,6 +11,7 @@ from .forms import TeamCreationForm, TournamentForm, AvatarUploadForm, ExtendedU
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.utils.crypto import get_random_string
+from django.db import transaction
 
 def home(request):
     assert isinstance(request, HttpRequest)
@@ -157,15 +154,25 @@ def create_team(request):
     if request.method == 'POST':
         form = TeamCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            team = form.save(commit=False)
-            team.captain = request.user
-            team.save()
-            team.members.add(request.user)
-            request.user.userprofile.team = team
-            request.user.userprofile.save()
-            return redirect('team_page', team_id=team.id)
+            try:
+                with transaction.atomic():
+                    team = form.save(commit=False)
+                    team.captain = request.user
+                    
+                    team.save()
+                    
+                    request.user.userprofile.team = team
+                    request.user.userprofile.save()
+                    
+                    messages.success(request, f'Команда "{team.name}" успешно создана!')
+                    return redirect('team_page', team_id=team.id)
+                    
+            except Exception as e:
+                messages.error(request, f'Ошибка при создании команды: {str(e)}')
+                return redirect('create_team')
     else:
         form = TeamCreationForm()
+    
     return render(request, 'app/create_team.html', {'form': form})
 
 @login_required
@@ -212,14 +219,21 @@ def leave_team(request):
     user_profile = request.user.userprofile
     if user_profile.team:
         team = user_profile.team
+        
         if team.is_captain(request.user) and team.member_count() > 1:
-            messages.error(request, 'Вы не можете покинуть команду будучи капитаном.')
+            messages.error(request, 'Вы не можете покинуть команду будучи капитаном. Сначала передайте лидерство или удалите команду.')
             return redirect('team_page', team_id=team.id)
         
         team.members.remove(request.user)
         user_profile.team = None
         user_profile.save()
-        messages.success(request, 'Вы вышли из команды')
+        
+        if team.member_count() == 0:
+            team.delete()
+            messages.success(request, 'Вы вышли из команды. Команда удалена, так как в ней не осталось участников.')
+        else:
+            messages.success(request, 'Вы вышли из команды')
+            
     return redirect('profile')
 
 @login_required
@@ -232,6 +246,51 @@ def delete_team(request, team_id):
     team.delete()
     messages.success(request, 'Команда успешно удалена')
     return redirect('profile')
+
+@login_required
+def edit_team(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    if not team.is_captain(request.user):
+        messages.error(request, 'Только капитан может редактировать команду')
+        return redirect('team_page', team_id=team.id)
+
+    if request.method == 'POST':
+        form = TeamCreationForm(request.POST, request.FILES, instance=team)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Команда успешно обновлена')
+            return redirect('team_page', team_id=team.id)
+    else:
+        form = TeamCreationForm(instance=team)
+    
+    return render(request, 'app/edit_team.html', {
+        'form': form,
+        'team': team
+    })
+
+@login_required
+def remove_member(request, team_id, member_id):
+    team = get_object_or_404(Team, id=team_id)
+    member = get_object_or_404(User, id=member_id)
+    
+    if not team.is_captain(request.user):
+        messages.error(request, 'Только капитан может удалять участников')
+        return redirect('team_page', team_id=team.id)
+    
+    if member == request.user:
+        messages.error(request, 'Используйте "Покинуть команду" для выхода из команды')
+        return redirect('team_page', team_id=team.id)
+    
+    if not team.is_member(member):
+        messages.error(request, 'Этот пользователь не состоит в вашей команде')
+        return redirect('team_page', team_id=team.id)
+    
+    team.members.remove(member)
+    member.userprofile.team = None
+    member.userprofile.save()
+    messages.success(request, f'Участник {member.username} удален из команды')
+    
+    return redirect('team_page', team_id=team.id)
 
 @login_required
 def transfer_leadership(request, team_id, new_captain_id):

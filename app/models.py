@@ -1,8 +1,9 @@
-﻿from django.db import models
+﻿from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, post_save
 from django.dispatch import receiver
 
 class Tournament(models.Model):
@@ -66,53 +67,96 @@ class Tournament(models.Model):
     def __str__(self):
         return self.name
 
-class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    email_confirmed = models.BooleanField(default=False)
-    avatar = models.ImageField(
-        upload_to='avatars/',
-        default='avatars/default.jpg',
-        blank=True,
-        null=True
-    )
-    team = models.CharField(max_length=100, blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
-    
-    def __str__(self):
-        return self.user.username
-
 class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Название команды",
+        error_messages={
+            'unique': "Команда с таким названием уже существует"
+        }
+    )
     avatar = models.ImageField(
         upload_to='team_avatars/',
         default='team_avatars/default.jpg',
         blank=True,
-        null=True
+        null=True,
+        verbose_name="Аватар команды"
     )
-    captain = models.ForeignKey(User, on_delete=models.CASCADE, related_name='captained_teams')
-    members = models.ManyToManyField(User, related_name='teams')
-    created_at = models.DateTimeField(auto_now_add=True)
-    invite_code = models.CharField(max_length=32, unique=True)
+    captain = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='captained_teams',
+        verbose_name="Капитан"
+    )
+    members = models.ManyToManyField(
+        User,
+        related_name='teams',
+        blank=True,
+        verbose_name="Участники"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата создания"
+    )
+    invite_code = models.CharField(
+        max_length=32,
+        unique=True,
+        verbose_name="Код приглашения"
+    )
+
+    class Meta:
+        verbose_name = 'Команда'
+        verbose_name_plural = 'Команды'
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.invite_code:
-            self.invite_code = get_random_string(32)
-        super().save(*args, **kwargs)
+        if not self.pk:
+            if not self.invite_code:
+                self.invite_code = get_random_string(32)
+            super().save(*args, **kwargs)
+            self.members.add(self.captain)
+        else:
+            super().save(*args, **kwargs)
 
     def member_count(self):
+        """Безопасный метод подсчета участников"""
+        if not self.pk:
+            return 0
         return self.members.count()
 
     def is_full(self):
+        """Проверяет, достигнут ли лимит участников"""
         return self.member_count() >= 8
 
     def is_captain(self, user):
+        """Проверяет, является ли пользователь капитаном"""
         return self.captain == user
 
     def is_member(self, user):
+        """Проверяет, состоит ли пользователь в команде"""
         return self.members.filter(pk=user.pk).exists()
+
+    def clean(self):
+        if self.member_count() > 8:
+            raise ValidationError("Команда не может содержать более 8 участников")
+
+    def delete_if_empty(self):
+        """Удаляет команду, если в ней нет участников"""
+        if self.member_count() == 0:
+            self.delete()
+            return True
+        return False
+
+
+@receiver(post_save, sender=Team)
+def add_captain_to_members(sender, instance, created, **kwargs):
+    """Сигнал для добавления капитана в участники после создания команды"""
+    if created and not instance.members.filter(pk=instance.captain.pk).exists():
+        instance.members.add(instance.captain)
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -131,7 +175,6 @@ class UserProfile(models.Model):
 
 @receiver(pre_delete, sender=User)
 def user_deleted(sender, instance, **kwargs):
-    """Удаляем команду, если при удалении пользователя она осталась пустой"""
     try:
         profile = instance.userprofile
         if profile.team:
@@ -139,15 +182,12 @@ def user_deleted(sender, instance, **kwargs):
             profile.team = None
             profile.save()
             
-            # Если пользователь был капитаном, передаем лидерство или удаляем команду
             if team.captain == instance:
                 if team.member_count() > 1:
-                    # Назначаем нового капитана (первого попавшегося участника)
                     new_captain = team.members.exclude(pk=instance.pk).first()
                     team.captain = new_captain
                     team.save()
                 else:
-                    # Если участник был один, удаляем команду
                     team.delete()
             elif team.member_count() == 0:
                 team.delete()

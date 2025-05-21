@@ -29,7 +29,8 @@
             {% endfor %}
         </ul>
 
-        {% if is_member %}
+        <!-- Блок с приглашением — только для капитана -->
+        {% if is_captain %}
         <div class="card mb-3">
             <div class="card-body">
                 <h5 class="card-title">Пригласить в команду</h5>
@@ -40,7 +41,10 @@
                 <small class="text-muted">Отправьте эту ссылку игроку, чтобы он мог присоединиться к вашей команде</small>
             </div>
         </div>
+        {% endif %}
 
+        <!-- Кнопки действий -->
+        {% if is_member %}
         <div class="btn-group">
             {% if is_captain %}
             <a href="{% url 'edit_team' team_id=team.id %}" class="btn btn-primary">Редактировать команду</a>

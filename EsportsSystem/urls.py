@@ -29,7 +29,7 @@ urlpatterns = [
     # Аутентификация
     path('login/',
          auth_views.LoginView.as_view(
-             template_name='app/login.html',
+             template_name='app/auth/login.html',
              authentication_form=forms.BootstrapAuthenticationForm,
              extra_context={
                  'title': 'Войти',

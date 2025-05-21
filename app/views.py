@@ -33,14 +33,14 @@ def register(request):
             user.save()
             
             UserProfile.objects.create(user=user)
-            return render(request, 'app/registration_success.html', {
+            return render(request, 'app/auth/registration_success.html', {
                 'title': 'Регистрация успешна',
                 'year': datetime.now().year,
             })
     else:
         form = ExtendedUserCreationForm()
     
-    return render(request, 'app/register.html', {
+    return render(request, 'app/auth/register.html', {
         'form': form,
         'title': 'Регистрация',
         'year': datetime.now().year,
@@ -66,7 +66,7 @@ def tournaments(request):
     assert isinstance(request, HttpRequest)
     return render(
         request,
-        'app/tournaments.html',
+        'app/tournaments/tournaments.html',
         {
             'title':'Последние турниры',
             'year':datetime.now().year,
@@ -91,7 +91,7 @@ def create_tournament(request):
             return redirect('tournaments')
     else:
         form = TournamentForm()
-    return render(request, 'app/create_tournament.html', {'form': form})
+    return render(request, 'app/tournaments/create_tournament.html', {'form': form})
 
 @login_required
 def profile(request, username=None):
@@ -113,7 +113,7 @@ def profile(request, username=None):
     elif is_owner:
         avatar_form = AvatarUploadForm(instance=profile)
     
-    return render(request, 'app/profile.html', {
+    return render(request, 'app/profile/profile.html', {
         'profile_user': profile_user,
         'profile': profile,
         'is_owner': is_owner,
@@ -133,7 +133,7 @@ def edit_profile(request):
     else:
         form = AvatarUploadForm(instance=profile)
     
-    return render(request, 'app/edit_profile.html', {
+    return render(request, 'app/profile/edit_profile.html', {
         'form': form,
         'profile': profile
     })
@@ -143,7 +143,7 @@ def view_profile(request, username):
     profile = UserProfile.objects.get(user=user)
     is_owner = (request.user == user)
     
-    return render(request, 'app/profile.html', {
+    return render(request, 'app/profile/profile.html', {
         'profile_user': user,
         'profile': profile,
         'is_owner': is_owner,
@@ -173,7 +173,7 @@ def create_team(request):
     else:
         form = TeamCreationForm()
     
-    return render(request, 'app/create_team.html', {'form': form})
+    return render(request, 'app/teams/create_team.html', {'form': form})
 
 @login_required
 def join_team(request, invite_code):
@@ -206,7 +206,7 @@ def team_page(request, team_id):
     is_member = team.is_member(request.user)
     is_captain = team.is_captain(request.user)
     
-    return render(request, 'app/team_page.html', {
+    return render(request, 'app/teams/team_page.html', {
         'team': team,
         'is_member': is_member,
         'is_captain': is_captain,
@@ -263,7 +263,7 @@ def edit_team(request, team_id):
     else:
         form = TeamCreationForm(instance=team)
     
-    return render(request, 'app/edit_team.html', {
+    return render(request, 'app/teams/edit_team.html', {
         'form': form,
         'team': team
     })

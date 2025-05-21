@@ -57,7 +57,6 @@
     <Folder Include="app\templates\" />
     <Folder Include="app\templates\app\" />
     <Folder Include="app\templates\app\auth\" />
-    <Folder Include="app\templates\app\partials\" />
     <Folder Include="app\templates\app\tournaments\" />
     <Folder Include="app\templates\app\teams\" />
     <Folder Include="app\templates\app\profile\" />
@@ -65,21 +64,21 @@
     <Folder Include="EsportsSystem\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="app\templates\app\change_password.html" />
-    <Content Include="app\templates\app\create_team.html" />
-    <Content Include="app\templates\app\create_tournament.html" />
-    <Content Include="app\templates\app\edit_profile.html" />
+    <Content Include="app\templates\app\profile\change_password.html" />
+    <Content Include="app\templates\app\teams\create_team.html" />
+    <Content Include="app\templates\app\tournaments\create_tournament.html" />
+    <Content Include="app\templates\app\profile\edit_profile.html" />
     <Content Include="app\templates\app\privacy_policy.html" />
-    <Content Include="app\templates\app\registration_success.html" />
+    <Content Include="app\templates\app\auth\registration_success.html" />
     <Content Include="app\templates\app\service_terms.html" />
-    <Content Include="app\templates\app\team_page.html" />
-    <Content Include="app\templates\app\edit_team.html" />
+    <Content Include="app\templates\app\teams\team_page.html" />
+    <Content Include="app\templates\app\teams\edit_team.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />
     <Content Include="app\templates\registration\password_reset_form.html" />
-    <Content Include="app\templates\app\profile.html" />
-    <Content Include="app\templates\app\register.html" />
+    <Content Include="app\templates\app\profile\profile.html" />
+    <Content Include="app\templates\app\auth\register.html" />
     <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="app\templates\registration\password_reset_confirm.html" />
     <Content Include="requirements.txt" />
@@ -106,10 +105,10 @@
     <Content Include="app\static\app\scripts\respond.js" />
     <Content Include="app\static\app\scripts\respond.min.js" />
     <Content Include="app\static\app\scripts\_references.js" />
-    <Content Include="app\templates\app\tournaments.html" />
+    <Content Include="app\templates\app\tournaments\tournaments.html" />
     <Content Include="app\templates\app\index.html" />
     <Content Include="app\templates\app\layout.html" />
-    <Content Include="app\templates\app\login.html" />
+    <Content Include="app\templates\app\auth\login.html" />
     <Content Include="app\templates\app\loginpartial.html" />
   </ItemGroup>
   <ItemGroup>

@@ -57,7 +57,7 @@ def change_password(request):
             return redirect('profile')
     else:
         form = PasswordChangeForm(request.user)
-    return render(request, 'app/change_password.html', {
+    return render(request, 'app/profile/change_password.html', {
         'form': form,
         'title': 'Смена пароля'
     })

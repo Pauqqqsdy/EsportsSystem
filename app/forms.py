@@ -60,12 +60,35 @@ class AvatarUploadForm(forms.ModelForm):
         return profile
 
 class ExtendedUserCreationForm(UserCreationForm):
-    email = forms.EmailField(required=True, label="Email")
-    privacy_policy = forms.BooleanField(required=True, label="Я согласен с политикой конфиденциальности")
+    email = forms.EmailField(
+        required=True, 
+        label="Email",
+        error_messages={
+            'required': 'Email обязателен для заполнения'
+        }
+    )
+    privacy_policy = forms.BooleanField(
+        required=True, 
+        label="Я согласен с политикой конфиденциальности",
+        error_messages={
+            'required': 'Вы должны принять условия соглашения'
+        }
+    )
 
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2', 'privacy_policy')
+        error_messages = {
+            'username': {
+                'required': 'Логин обязателен для заполнения',
+            },
+            'password1': {
+                'required': 'Пароль обязателен для заполнения',
+            },
+            'password2': {
+                'required': 'Пожалуйста, подтвердите пароль',
+            },
+        }
 
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -81,11 +104,18 @@ class ExtendedUserCreationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'class': 'form-control'})
-        self.fields['email'].widget.attrs.update({'class': 'form-control'})
-        self.fields['password1'].widget.attrs.update({'class': 'form-control'})
-        self.fields['password2'].widget.attrs.update({'class': 'form-control'})
-        self.fields['privacy_policy'].widget.attrs.update({'class': 'form-check-input'})
+        self.fields['password1'].widget = forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'required': 'required',
+            'oninvalid': "this.setCustomValidity('Пожалуйста, введите пароль')",
+            'oninput': "this.setCustomValidity('')"
+        })
+        self.fields['password2'].widget = forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'required': 'required',
+            'oninvalid': "this.setCustomValidity('Пожалуйста, подтвердите пароль')",
+            'oninput': "this.setCustomValidity('')"
+        })
 
 class TeamCreationForm(forms.ModelForm):
     class Meta:

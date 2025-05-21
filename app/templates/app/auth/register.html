@@ -20,7 +20,7 @@
             {% endif %}
 
             <div class="form-group">
-                <label for="id_username">Никнейм:</label>
+                <label for="id_username">Логин:</label>
                 <input type="text"
                        name="username"
                        id="id_username"
@@ -28,7 +28,7 @@
                        value="{{ form.username.value|default:'' }}"
                        maxlength="16"
                        pattern="[a-zA-Z0-9]+"
-                       title="Только латинские буквы и цифры (макс. 16 символов)"
+                       title="Только латинские буквы и цифры (максимум 16 символов)"
                        required>
                 {% if form.username.errors %}
                 <div class="invalid-feedback">

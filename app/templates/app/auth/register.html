@@ -21,17 +21,9 @@
 
             <div class="form-group">
                 <label for="id_username">Логин:</label>
-                <input type="text"
-                       name="username"
-                       id="id_username"
-                       class="form-control {% if form.username.errors %}is-invalid{% endif %}"
-                       value="{{ form.username.value|default:'' }}"
-                       maxlength="16"
-                       pattern="[a-zA-Z0-9]+"
-                       title="Только латинские буквы и цифры (максимум 16 символов)"
-                       required>
+                {{ form.username }}
                 {% if form.username.errors %}
-                <div class="invalid-feedback">
+                <div class="invalid-feedback d-block">
                     {% for error in form.username.errors %}
                     {{ error }}
                     {% endfor %}
@@ -44,14 +36,9 @@
 
             <div class="form-group">
                 <label for="id_email">Email:</label>
-                <input type="email"
-                       name="email"
-                       id="id_email"
-                       class="form-control {% if form.email.errors %}is-invalid{% endif %}"
-                       value="{{ form.email.value|default:'' }}"
-                       required>
+                {{ form.email }}
                 {% if form.email.errors %}
-                <div class="invalid-feedback">
+                <div class="invalid-feedback d-block">
                     {% for error in form.email.errors %}
                     {{ error }}
                     {% endfor %}
@@ -63,9 +50,6 @@
             <div class="form-group">
                 <label for="id_password1">Пароль:</label>
                 {{ form.password1 }}
-                <small class="form-text text-muted">
-                    Пароль должен содержать минимум 8 символов и не быть слишком простым.
-                </small>
                 {% if form.password1.errors %}
                 <div class="invalid-feedback d-block">
                     {% for error in form.password1.errors %}
@@ -73,6 +57,9 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+                <small class="form-text text-muted">
+                    Пароль должен содержать минимум 8 символов и не быть слишком простым.
+                </small>
             </div>
 
             <div class="form-group">
@@ -88,17 +75,13 @@
             </div>
 
             <div class="form-group form-check">
-                <input type="checkbox"
-                       name="privacy_policy"
-                       id="id_privacy_policy"
-                       class="form-check-input {% if form.privacy_policy.errors %}is-invalid{% endif %}"
-                       required>
+                {{ form.privacy_policy }}
                 <label class="form-check-label" for="id_privacy_policy">
                     Я согласен с <a href="{% url 'privacy_policy' %}" target="_blank">политикой конфиденциальности</a>
                     и <a href="{% url 'service_terms' %}" target="_blank">пользовательским соглашением</a>
                 </label>
                 {% if form.privacy_policy.errors %}
-                <div class="invalid-feedback">
+                <div class="invalid-feedback d-block">
                     {% for error in form.privacy_policy.errors %}
                     {{ error }}
                     {% endfor %}
@@ -117,14 +100,60 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Валидация логина (только латинские буквы и цифры)
         const usernameField = document.getElementById('id_username');
+        if (usernameField) {
+            usernameField.addEventListener('input', function () {
+                this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
+                if (this.value.length > 16) {
+                    this.value = this.value.substring(0, 16);
+                }
+            });
+        }
 
-        usernameField.addEventListener('input', function () {
-            this.value = this.value.replace(/[^a-zA-Z0-9]/g, '');
-            if (this.value.length > 16) {
-                this.value = this.value.substring(0, 16);
-            }
-        });
+        // Кастомная валидация формы при отправке
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                let isValid = true;
+
+                // Проверка всех обязательных полей
+                const requiredFields = form.querySelectorAll('[required]');
+                requiredFields.forEach(field => {
+                    field.classList.remove('is-invalid');
+                    const feedback = field.nextElementSibling;
+                    if (feedback && feedback.classList.contains('invalid-feedback')) {
+                        feedback.remove();
+                    }
+
+                    if ((field.type !== 'checkbox' && !field.value.trim()) ||
+                        (field.type === 'checkbox' && !field.checked)) {
+                        isValid = false;
+                        field.classList.add('is-invalid');
+
+                        // Создаем сообщение об ошибке
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'invalid-feedback';
+
+                        // Устанавливаем кастомное сообщение в зависимости от поля
+                        const fieldMessages = {
+                            'id_username': 'Логин обязателен для заполнения',
+                            'id_email': 'Email обязателен для заполнения',
+                            'id_password1': 'Пароль обязателен для заполнения',
+                            'id_password2': 'Пожалуйста, подтвердите пароль',
+                            'id_privacy_policy': 'Требуется принять условия соглашения'
+                        };
+
+                        errorDiv.textContent = fieldMessages[field.id] || 'Это поле обязательно для заполнения';
+                        field.parentNode.insertBefore(errorDiv, field.nextSibling);
+                    }
+                });
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        }
     });
 </script>
 {% endblock %}

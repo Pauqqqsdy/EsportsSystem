@@ -63,32 +63,76 @@ class ExtendedUserCreationForm(UserCreationForm):
     email = forms.EmailField(
         required=True, 
         label="Email",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введите ваш email',
+            'oninvalid': "this.setCustomValidity('Email обязателен для заполнения')",
+            'oninput': "this.setCustomValidity('')"
+        }),
         error_messages={
-            'required': 'Email обязателен для заполнения'
+            'required': 'Email обязателен для заполнения',
+            'invalid': 'Введите корректный email адрес'
         }
     )
     privacy_policy = forms.BooleanField(
         required=True, 
         label="Я согласен с политикой конфиденциальности",
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+            'oninvalid': "this.setCustomValidity('Требуется принять условия соглашения')",
+            'oninput': "this.setCustomValidity('')"
+        }),
         error_messages={
-            'required': 'Вы должны принять условия соглашения'
+            'required': 'Требуется принять условия соглашения'
         }
     )
 
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2', 'privacy_policy')
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Придумайте логин',
+                'pattern': '[a-zA-Z0-9]+',
+                'maxlength': '16',
+                'oninvalid': "this.setCustomValidity('Логин обязателен для заполнения')",
+                'oninput': "this.setCustomValidity('')"
+            }),
+        }
         error_messages = {
             'username': {
                 'required': 'Логин обязателен для заполнения',
+                'max_length': 'Логин не должен превышать 16 символов',
+                'invalid': 'Только латинские буквы и цифры'
             },
             'password1': {
                 'required': 'Пароль обязателен для заполнения',
+                'password_mismatch': 'Пароли не совпадают',
+                'password_too_short': 'Пароль должен содержать минимум 8 символов',
+                'password_too_common': 'Пароль слишком простой'
             },
             'password2': {
                 'required': 'Пожалуйста, подтвердите пароль',
             },
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].widget = forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Придумайте пароль',
+            'required': 'required',
+            'oninvalid': "this.setCustomValidity('Пароль обязателен для заполнения')",
+            'oninput': "this.setCustomValidity('')"
+        })
+        self.fields['password2'].widget = forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Повторите пароль',
+            'required': 'required',
+            'oninvalid': "this.setCustomValidity('Пожалуйста, подтвердите пароль')",
+            'oninput': "this.setCustomValidity('')"
+        })
 
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -101,21 +145,6 @@ class ExtendedUserCreationForm(UserCreationForm):
         if User.objects.filter(username=username).exists():
             raise ValidationError("Этот никнейм уже занят")
         return username
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['password1'].widget = forms.PasswordInput(attrs={
-            'class': 'form-control',
-            'required': 'required',
-            'oninvalid': "this.setCustomValidity('Пожалуйста, введите пароль')",
-            'oninput': "this.setCustomValidity('')"
-        })
-        self.fields['password2'].widget = forms.PasswordInput(attrs={
-            'class': 'form-control',
-            'required': 'required',
-            'oninvalid': "this.setCustomValidity('Пожалуйста, подтвердите пароль')",
-            'oninput': "this.setCustomValidity('')"
-        })
 
 class TeamCreationForm(forms.ModelForm):
     class Meta:

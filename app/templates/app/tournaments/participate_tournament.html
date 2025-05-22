@@ -1,0 +1,29 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Регистрация на турнир "{{ tournament.name }}"</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Ваша команда: {{ team.name }}</h5>
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.fields.players %}
+                <p>Выберите игроков, которые будут участвовать:</p>
+                {{ form.players }}
+                {% else %}
+                <p>Вы будете участвовать как индивидуальный игрок.</p>
+                {% endif %}
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Подтвердить участие</button>
+                    <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

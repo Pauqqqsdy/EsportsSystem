@@ -1,13 +1,50 @@
 ﻿{% extends "app/layout.html" %}
-
 {% block content %}
 <div class="container">
-    <h1 class="text-center mb-4">Турниры для Вас</h1>
+    <h1 class="mb-4">Турниры</h1>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="form-inline">
+                <div class="form-group mr-3 mb-2">
+                    <label for="discipline" class="mr-2">Дисциплина:</label>
+                    <select name="discipline" id="discipline" class="form-control">
+                        <option value="">Все</option>
+                        {% for value, name in disciplines %}
+                        <option value="{{ value }}" {% if selected_discipline == value %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mr-3 mb-2">
+                    <label for="game_format" class="mr-2">Формат:</label>
+                    <select name="game_format" id="game_format" class="form-control">
+                        <option value="">Все</option>
+                        {% for value, name in game_formats %}
+                        <option value="{{ value }}" {% if selected_game_format == value %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group mr-3 mb-2">
+                    <label for="region" class="mr-2">Регион:</label>
+                    <select name="region" id="region" class="form-control">
+                        <option value="">Все</option>
+                        {% for value, name in regions %}
+                        <option value="{{ value }}" {% if selected_region == value %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mb-2">Применить</button>
+                <a href="{% url 'tournaments' %}" class="btn btn-outline-secondary mb-2 ml-2">Сбросить</a>
+            </form>
+        </div>
+    </div>
 
     {% if user.is_authenticated %}
-    <div class="text-right mb-4">
-        <a href="{% url 'create_tournament' %}" class="btn btn-primary">
-            Создать новый турнир
+    <div class="mb-4">
+        <a href="{% url 'create_tournament' %}" class="btn btn-primary mr-2">
+            Создать турнир
+        </a>
+        <a href="{% url 'my_tournaments' %}" class="btn btn-outline-primary">
+            Мои турниры
         </a>
     </div>
     {% endif %}
@@ -17,20 +54,25 @@
         <div class="col-md-6 mb-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h3 class="card-title">{{ tournament.name }}</h3>
-                    <p class="card-text">{{ tournament.description|truncatechars:150 }}</p>
-                    <div class="text-muted mb-2">
-                        <small>Создатель: {{ tournament.creator.username }}</small><br>
-                        <small>Дата начала: {{ tournament.start_date|date:"d.m.Y H:i" }}</small><br>
-                        <small>Дата окончания: {{ tournament.end_date|date:"d.m.Y H:i" }}</small>
-                    </div>
-                    <a href="#" class="btn btn-outline-primary">Подробнее</a>
+                    <h5 class="card-title">{{ tournament.name }}</h5>
+                    <p class="card-text">
+                        {{ tournament.get_discipline_display }} •
+                        {{ tournament.get_game_format_display }} •
+                        {{ tournament.get_location_display }}
+                    </p>
+                    <p class="text-muted">
+                        <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small><br>
+                        <small>Участников: {{ tournament.registered_teams.count }}/{{ tournament.max_teams }}</small>
+                    </p>
+                    <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary">
+                        Подробнее
+                    </a>
                 </div>
             </div>
         </div>
         {% empty %}
         <div class="col-12">
-            <div class="alert alert-info">На данный момент нет активных турниров.</div>
+            <div class="alert alert-info">По вашим критериям не найдено активных турниров.</div>
         </div>
         {% endfor %}
     </div>

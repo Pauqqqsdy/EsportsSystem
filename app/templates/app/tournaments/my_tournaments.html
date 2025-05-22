@@ -1,0 +1,91 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Мои турниры</h1>
+
+    <ul class="nav nav-tabs mb-4" id="myTournamentsTab" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="participating-tab" data-toggle="tab" href="#participating" role="tab">
+                Турниры с моим участием
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="created-tab" data-toggle="tab" href="#created" role="tab">
+                Созданные мной турниры
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="myTournamentsTabContent">
+        <div class="tab-pane fade show active" id="participating" role="tabpanel">
+            {% if participating_tournaments %}
+            <div class="row">
+                {% for tournament in participating_tournaments %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ tournament.name }}</h5>
+                            <p class="card-text">{{ tournament.discipline }} • {{ tournament.get_game_format_display }}</p>
+                            <p class="text-muted">
+                                <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small>
+                            </p>
+                            <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary">
+                                Подробнее
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">Вы не участвуете ни в одном активном турнире</div>
+            {% endif %}
+        </div>
+
+        <div class="tab-pane fade" id="created" role="tabpanel">
+            {% if created_tournaments %}
+            <div class="row">
+                {% for tournament in created_tournaments %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ tournament.name }}</h5>
+                            <p class="card-text">{{ tournament.discipline }} • {{ tournament.get_game_format_display }}</p>
+                            <p class="text-muted">
+                                <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small><br>
+                                <small>Участников: {{ tournament.registered_teams_count }}/{{ tournament.max_teams }}</small>
+                            </p>
+                            <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary">
+                                Подробнее
+                            </a>
+                            <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-outline-secondary">
+                                Редактировать
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">Вы не создали ни одного турнира</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function(){
+    var hash = window.location.hash;
+    if (hash) {
+        $('.nav-tabs a[href="' + hash + '"]').tab('show');
+    }
+
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        window.location.hash = e.target.hash;
+    });
+});
+</script>
+{% endblock %}

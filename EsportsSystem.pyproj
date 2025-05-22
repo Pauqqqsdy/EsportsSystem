@@ -73,13 +73,16 @@
     <Content Include="app\templates\app\service_terms.html" />
     <Content Include="app\templates\app\teams\team_page.html" />
     <Content Include="app\templates\app\teams\edit_team.html" />
+    <Content Include="app\templates\app\tournaments\edit_tournament.html" />
+    <Content Include="app\templates\app\tournaments\my_tournaments.html" />
+    <Content Include="app\templates\app\tournaments\participate_tournament.html" />
+    <Content Include="app\templates\app\tournaments\tournament_detail.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />
     <Content Include="app\templates\registration\password_reset_form.html" />
     <Content Include="app\templates\app\profile\profile.html" />
     <Content Include="app\templates\app\auth\register.html" />
-    <Content Include="app\templates\app\create_tournament.html" />
     <Content Include="app\templates\registration\password_reset_confirm.html" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />

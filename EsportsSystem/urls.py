@@ -9,10 +9,10 @@ from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('tournaments/', views.tournaments, name='tournaments'),
-    path('profile/', views.profile, name='profile'),
+    path('register/', views.register, name='register'),
     path('service_terms/', views.service_terms, name='service_terms'),
     path('privacy_policy/', views.privacy_policy, name='privacy_policy'),
+    path('profile/', views.profile, name='profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change_password/', views.change_password, name='change_password'),
     path('user/<str:username>/', views.view_profile, name='view_profile'),
@@ -22,9 +22,15 @@ urlpatterns = [
     path('team/leave/', views.leave_team, name='leave_team'),
     path('team/<int:team_id>/delete/', views.delete_team, name='delete_team'),
     path('team/<int:team_id>/transfer/<int:new_captain_id>/', views.transfer_leadership, name='transfer_leadership'),
-    path('tournaments/create/', views.create_tournament, name='create_tournament'),
     path('team/<int:team_id>/edit/', views.edit_team, name='edit_team'),
     path('team/<int:team_id>/remove/<int:member_id>/', views.remove_member, name='remove_member'),
+    path('tournaments/', views.tournaments, name='tournaments'),
+    path('tournaments/my/', views.my_tournaments, name='my_tournaments'),
+    path('tournaments/create/', views.create_tournament, name='create_tournament'),
+    path('tournaments/<int:tournament_id>/', views.tournament_detail, name='tournament_detail'),
+    path('tournaments/<int:tournament_id>/edit/', views.edit_tournament, name='edit_tournament'),
+    path('tournaments/<int:tournament_id>/participate/', views.participate_tournament, name='participate_tournament'),
+
 
     # Аутентификация
     path('login/',
@@ -56,10 +62,6 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='registration/password_reset_completed.html'
     ), name='password_reset_complete'),
-    
-    # Регистрация
-    path('register/', views.register, name='register'),
-    
 ]
 
 if settings.DEBUG:

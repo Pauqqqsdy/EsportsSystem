@@ -1,4 +1,5 @@
 ﻿from datetime import datetime
+from django.db.models import Q
 from django.http import HttpRequest
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
@@ -7,7 +8,7 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from .models import Tournament, UserProfile, Team
-from .forms import TeamCreationForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, User
+from .forms import TeamCreationForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.utils.crypto import get_random_string
@@ -62,36 +63,25 @@ def change_password(request):
         'title': 'Смена пароля'
     })
 
-def tournaments(request):
-    assert isinstance(request, HttpRequest)
+def service_terms(request):
     return render(
         request,
-        'app/tournaments/tournaments.html',
+        'app/service_terms.html',
         {
-            'title':'Последние турниры',
-            'year':datetime.now().year,
+            'title': 'Пользовательское соглашение',
+            'year': datetime.now().year,
         }
     )
 
-def tournaments(request):
-    latest_tournaments = Tournament.objects.filter(is_active=True).order_by('-created_at')[:10]
-    return render(request, 'app/tournaments.html', {
-        'tournaments': latest_tournaments,
-        'title': 'Турниры',
-    })
-
-@login_required
-def create_tournament(request):
-    if request.method == 'POST':
-        form = TournamentForm(request.POST)
-        if form.is_valid():
-            tournament = form.save(commit=False)
-            tournament.creator = request.user
-            tournament.save()
-            return redirect('tournaments')
-    else:
-        form = TournamentForm()
-    return render(request, 'app/tournaments/create_tournament.html', {'form': form})
+def privacy_policy(request):
+    return render(
+        request,
+        'app/privacy_policy.html',
+        {
+            'title': 'Политика конфиденциальности',
+            'year': datetime.now().year,
+        }
+    )
 
 @login_required
 def profile(request, username=None):
@@ -309,22 +299,147 @@ def transfer_leadership(request, team_id, new_captain_id):
     messages.success(request, f'Лидерство передано {new_captain.username}')
     return redirect('team_page', team_id=team.id)
 
-def service_terms(request):
-    return render(
-        request,
-        'app/service_terms.html',
-        {
-            'title': 'Пользовательское соглашение',
-            'year': datetime.now().year,
-        }
-    )
+def tournaments(request):
+    region = request.GET.get('region')
+    discipline = request.GET.get('discipline')
+    game_format = request.GET.get('game_format')
+    tournaments_qs = Tournament.objects.filter(is_active=True).order_by('-created_at')
 
-def privacy_policy(request):
-    return render(
-        request,
-        'app/privacy_policy.html',
-        {
-            'title': 'Политика конфиденциальности',
-            'year': datetime.now().year,
-        }
-    )
+    if region:
+        tournaments_qs = tournaments_qs.filter(location=region)
+    if discipline:
+        tournaments_qs = tournaments_qs.filter(discipline=discipline)
+    if game_format:
+        tournaments_qs = tournaments_qs.filter(game_format=game_format)
+
+    context = {
+        'tournaments': tournaments_qs,
+        'regions': Tournament.LOCATION_CHOICES,
+        'disciplines': Tournament.DISCIPLINE_CHOICES,
+        'game_formats': Tournament.FORMAT_CHOICES,
+        'selected_region': region,
+        'selected_discipline': discipline,
+        'selected_game_format': game_format,
+        'title': 'Турниры',
+    }
+    return render(request, 'app/tournaments/tournaments.html', context)
+
+@login_required
+def create_tournament(request):
+    if request.method == 'POST':
+        form = TournamentForm(request.POST)
+        if form.is_valid():
+            tournament = form.save(commit=False)
+            tournament.creator = request.user
+            tournament.save()
+            return redirect('tournaments')
+    else:
+        form = TournamentForm()
+    return render(request, 'app/tournaments/create_tournament.html', {'form': form})
+
+def tournament_detail(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    is_creator = tournament.is_creator(request.user) if request.user.is_authenticated else False
+    user_team = None
+    is_registered = False
+    
+    if request.user.is_authenticated and hasattr(request.user, 'userprofile'):
+        user_team = request.user.userprofile.team
+        if user_team:
+            is_registered = tournament.is_registered(user_team)
+    
+    context = {
+        'tournament': tournament,
+        'is_creator': is_creator,
+        'user_team': user_team,
+        'is_registered': is_registered,
+        'registered_teams': tournament.registered_teams.all(),
+        'registered_count': f"{tournament.registered_teams_count()}/{tournament.max_teams}",
+    }
+    
+    return render(request, 'app/tournaments/tournament_detail.html', context)
+
+@login_required
+def edit_tournament(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель может редактировать турнир')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = TournamentForm(request.POST, instance=tournament)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Турнир успешно обновлен')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+    else:
+        form = TournamentForm(instance=tournament)
+    
+    return render(request, 'app/tournaments/edit_tournament.html', {
+        'form': form,
+        'tournament': tournament
+    })
+
+@login_required
+def participate_tournament(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    user_profile = request.user.userprofile
+    
+    if not user_profile.team:
+        if tournament.game_format != '1x1':
+            messages.error(request, 'Для участия в этом турнире вам нужно состоять в команде')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+        team = Team.objects.create(
+            name=f"{request.user.username}_temp",
+            captain=request.user
+        )
+        user_profile.team = team
+        user_profile.save()
+    else:
+        team = user_profile.team
+        if not team.is_captain(request.user):
+            messages.error(request, 'Только капитан может зарегистрировать команду на турнир')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if tournament.is_registered(team):
+        messages.warning(request, 'Ваша команда уже зарегистрирована на этот турнир')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if tournament.registered_teams_count() >= tournament.max_teams:
+        messages.error(request, 'Турнир уже заполнен')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = TournamentParticipationForm(request.POST, team=team, game_format=tournament.game_format)
+        if form.is_valid():
+            tournament.registered_teams.add(team)
+            messages.success(request, 'Ваша команда успешно зарегистрирована на турнир!')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+    else:
+        form = TournamentParticipationForm(team=team, game_format=tournament.game_format)
+    
+    return render(request, 'app/tournaments/participate_tournament.html', {
+        'form': form,
+        'tournament': tournament,
+        'team': team
+    })
+
+@login_required
+def my_tournaments(request):
+    user_teams = Team.objects.filter(Q(captain=request.user) | Q(members=request.user)).distinct()
+    participating_tournaments = Tournament.objects.filter(
+        registered_teams__in=user_teams,
+        is_active=True
+    ).order_by('start_date')
+    
+    created_tournaments = Tournament.objects.filter(
+        creator=request.user,
+        is_active=True
+    ).order_by('start_date')
+    
+    return render(request, 'app/tournaments/my_tournaments.html', {
+        'participating_tournaments': participating_tournaments,
+        'created_tournaments': created_tournaments,
+        'title': 'Мои турниры'
+    })

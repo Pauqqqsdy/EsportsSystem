@@ -58,6 +58,13 @@ class Tournament(models.Model):
     creator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Создатель")
     created_at = models.DateTimeField(default=timezone.now, verbose_name="Дата создания")
     is_active = models.BooleanField(default=True, verbose_name="Активный")
+    registered_teams = models.ManyToManyField(
+        'Team',
+        through='TournamentRegistration',
+        related_name='tournaments',
+        blank=True,
+        verbose_name="Зарегистрированные команды"
+    )
 
     class Meta:
         ordering = ['-created_at']
@@ -66,6 +73,45 @@ class Tournament(models.Model):
 
     def __str__(self):
         return self.name
+
+    def registered_teams_count(self):
+        return self.registered_teams.count()
+
+    def is_registered(self, team):
+        return self.registered_teams.filter(pk=team.pk).exists()
+
+    def is_creator(self, user):
+        return self.creator == user
+
+    def is_full(self):
+        return self.registered_teams_count() >= self.max_teams
+
+    def get_teams_display(self):
+        return f"{self.registered_teams_count()}/{self.max_teams}"
+
+    def clean(self):
+        if self.start_date < timezone.now():
+            raise ValidationError("Дата начала турнира не может быть в прошлом")
+
+
+class TournamentRegistration(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
+    team = models.ForeignKey('Team', on_delete=models.CASCADE)
+    registered_at = models.DateTimeField(auto_now_add=True)
+    players = models.ManyToManyField(
+        User,
+        related_name='tournament_registrations',
+        verbose_name="Игроки, участвующие в турнире"
+    )
+
+    class Meta:
+        unique_together = ('tournament', 'team')
+        verbose_name = 'Регистрация на турнир'
+        verbose_name_plural = 'Регистрации на турниры'
+
+    def __str__(self):
+        return f"{self.team.name} в {self.tournament.name}"
+
 
 class Team(models.Model):
     name = models.CharField(
@@ -123,21 +169,17 @@ class Team(models.Model):
             super().save(*args, **kwargs)
 
     def member_count(self):
-        """Безопасный метод подсчета участников"""
         if not self.pk:
             return 0
         return self.members.count()
 
     def is_full(self):
-        """Проверяет, достигнут ли лимит участников"""
         return self.member_count() >= 8
 
     def is_captain(self, user):
-        """Проверяет, является ли пользователь капитаном"""
         return self.captain == user
 
     def is_member(self, user):
-        """Проверяет, состоит ли пользователь в команде"""
         return self.members.filter(pk=user.pk).exists()
 
     def clean(self):
@@ -145,7 +187,6 @@ class Team(models.Model):
             raise ValidationError("Команда не может содержать более 8 участников")
 
     def delete_if_empty(self):
-        """Удаляет команду, если в ней нет участников"""
         if self.member_count() == 0:
             self.delete()
             return True
@@ -154,9 +195,9 @@ class Team(models.Model):
 
 @receiver(post_save, sender=Team)
 def add_captain_to_members(sender, instance, created, **kwargs):
-    """Сигнал для добавления капитана в участники после создания команды"""
     if created and not instance.members.filter(pk=instance.captain.pk).exists():
         instance.members.add(instance.captain)
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -172,6 +213,12 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return self.user.username
+
+    def can_register_for_tournament(self, tournament):
+        if tournament.game_format == '1x1':
+            return True
+        return self.team and self.team.is_captain(self.user)
+
 
 @receiver(pre_delete, sender=User)
 def user_deleted(sender, instance, **kwargs):

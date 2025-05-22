@@ -1,0 +1,16 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Редактирование турнира "{{ tournament.name }}"</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+            <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

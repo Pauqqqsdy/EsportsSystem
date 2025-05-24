@@ -22,6 +22,7 @@ class Tournament(models.Model):
     ]
     
     TEAM_COUNT_CHOICES = [
+        (2, '2'),
         (4, '4'),
         (8, '8'),
         (16, '16'),
@@ -30,12 +31,6 @@ class Tournament(models.Model):
         (128, '128'),
         (256, '256'),
         (512, '512'),
-    ]
-    
-    FORMAT_TOURNAMENT_CHOICES = [
-        ('BO1', 'BO1'),
-        ('BO3', 'BO3'),
-        ('BO5', 'BO5'),
     ]
     
     LOCATION_CHOICES = [
@@ -52,7 +47,6 @@ class Tournament(models.Model):
     start_date = models.DateTimeField(verbose_name="Дата начала")
     discipline = models.CharField(max_length=50, choices=DISCIPLINE_CHOICES, verbose_name="Дисциплина")
     game_format = models.CharField(max_length=50, choices=FORMAT_CHOICES, verbose_name="Формат игры")
-    tournament_format = models.CharField(max_length=50, choices=FORMAT_TOURNAMENT_CHOICES, verbose_name="Формат турнира")
     location = models.CharField(max_length=50, choices=LOCATION_CHOICES, verbose_name="Локация")
     description = models.TextField(verbose_name="Описание", blank=True, null=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Создатель")

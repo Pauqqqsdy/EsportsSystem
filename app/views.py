@@ -1,18 +1,19 @@
 ﻿from datetime import datetime
 from django.db.models import Q
-from django.http import HttpRequest
+from django.http import HttpRequest, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from .models import Tournament, UserProfile, Team
-from .forms import TeamCreationForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
-from django.contrib.auth.forms import PasswordChangeForm
+from .models import Tournament, TournamentRegistration, UserProfile, Team
+from .forms import TeamCreationForm, TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
 from django.contrib.auth import update_session_auth_hash
 from django.utils.crypto import get_random_string
 from django.db import transaction
+from django.views.decorators.http import require_POST
+
 
 def home(request):
     assert isinstance(request, HttpRequest)
@@ -368,13 +369,13 @@ def edit_tournament(request, tournament_id):
         return redirect('tournament_detail', tournament_id=tournament.id)
     
     if request.method == 'POST':
-        form = TournamentForm(request.POST, instance=tournament)
+        form = TournamentEditForm(request.POST, instance=tournament)
         if form.is_valid():
             form.save()
             messages.success(request, 'Турнир успешно обновлен')
             return redirect('tournament_detail', tournament_id=tournament.id)
     else:
-        form = TournamentForm(instance=tournament)
+        form = TournamentEditForm(instance=tournament)
     
     return render(request, 'app/tournaments/edit_tournament.html', {
         'form': form,
@@ -398,7 +399,7 @@ def participate_tournament(request, tournament_id):
         user_profile.save()
     else:
         team = user_profile.team
-        if not team.is_captain(request.user):
+        if not team.is_captain(request.user) and tournament.game_format != '1x1':
             messages.error(request, 'Только капитан может зарегистрировать команду на турнир')
             return redirect('tournament_detail', tournament_id=tournament.id)
     
@@ -410,10 +411,17 @@ def participate_tournament(request, tournament_id):
         messages.error(request, 'Турнир уже заполнен')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
+    if tournament.game_format == '1x1':
+        tournament.registered_teams.add(team)
+        messages.success(request, 'Вы успешно зарегистрированы на турнир!')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
     if request.method == 'POST':
         form = TournamentParticipationForm(request.POST, team=team, game_format=tournament.game_format)
         if form.is_valid():
             tournament.registered_teams.add(team)
+            registration = TournamentRegistration.objects.get(tournament=tournament, team=team)
+            registration.players.set(form.cleaned_data['players'])
             messages.success(request, 'Ваша команда успешно зарегистрирована на турнир!')
             return redirect('tournament_detail', tournament_id=tournament.id)
     else:
@@ -443,3 +451,18 @@ def my_tournaments(request):
         'created_tournaments': created_tournaments,
         'title': 'Мои турниры'
     })
+
+@login_required
+@require_POST
+def remove_team_from_tournament(request, tournament_id, team_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    team = get_object_or_404(Team, id=team_id)
+    
+    if not tournament.is_creator(request.user):
+        return JsonResponse({'success': False, 'error': 'Только создатель может удалять команды'}, status=403)
+    
+    if not tournament.is_registered(team):
+        return JsonResponse({'success': False, 'error': 'Эта команда не зарегистрирована на турнир'}, status=400)
+    
+    tournament.registered_teams.remove(team)
+    return JsonResponse({'success': True})

@@ -149,7 +149,7 @@ class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
         fields = ['name', 'max_teams', 'start_date', 'discipline', 
-                  'game_format', 'tournament_format', 'location', 'description']
+                 'game_format', 'location', 'description']
         widgets = {
             'start_date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
@@ -159,6 +159,39 @@ class TournamentForm(forms.ModelForm):
         super(TournamentForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-control'})
+        
+        if self.instance and self.instance.pk:
+            self.fields['discipline'].disabled = True
+            self.fields['game_format'].disabled = True
+        
+        if 'discipline' in self.data:
+            try:
+                discipline = self.data.get('discipline')
+                self.update_game_format_choices(discipline)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            self.update_game_format_choices(self.instance.discipline)
+    
+    def update_game_format_choices(self, discipline):
+        if discipline == 'Dota 2':
+            self.fields['game_format'].choices = [
+                ('1x1', '1x1'),
+                ('5x5', '5x5'),
+            ]
+        elif discipline in ['CS 2', 'LoL']:
+            self.fields['game_format'].choices = [
+                ('1x1', '1x1'),
+                ('2x2', '2x2'),
+                ('5x5', '5x5'),
+            ]
+        elif discipline == 'Valorant':
+            self.fields['game_format'].choices = [
+                ('1x1', '1x1'),
+                ('2x2', '2x2'),
+                ('3x3', '3x3'),
+                ('5x5', '5x5'),
+            ]
 
 class TournamentParticipationForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -189,3 +222,9 @@ class TournamentParticipationForm(forms.Form):
         if len(players) != self.required_players:
             raise forms.ValidationError(f"Необходимо выбрать ровно {self.required_players} игрока(ов)")
         return players
+
+class TournamentEditForm(TournamentForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['discipline'].disabled = True
+        self.fields['game_format'].disabled = True

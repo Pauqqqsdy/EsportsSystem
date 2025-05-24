@@ -8,14 +8,20 @@ from app import forms, views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
+
+    # Общее
     path('', views.home, name='home'),
     path('register/', views.register, name='register'),
     path('service_terms/', views.service_terms, name='service_terms'),
     path('privacy_policy/', views.privacy_policy, name='privacy_policy'),
+
+    # Профиль
     path('profile/', views.profile, name='profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change_password/', views.change_password, name='change_password'),
     path('user/<str:username>/', views.view_profile, name='view_profile'),
+
+    # Команда
     path('team/create/', views.create_team, name='create_team'),
     path('team/<int:team_id>/', views.team_page, name='team_page'),
     path('team/join/<str:invite_code>/', views.join_team, name='join_team'),
@@ -24,13 +30,15 @@ urlpatterns = [
     path('team/<int:team_id>/transfer/<int:new_captain_id>/', views.transfer_leadership, name='transfer_leadership'),
     path('team/<int:team_id>/edit/', views.edit_team, name='edit_team'),
     path('team/<int:team_id>/remove/<int:member_id>/', views.remove_member, name='remove_member'),
+
+    # Турниры
     path('tournaments/', views.tournaments, name='tournaments'),
     path('tournaments/my/', views.my_tournaments, name='my_tournaments'),
     path('tournaments/create/', views.create_tournament, name='create_tournament'),
     path('tournaments/<int:tournament_id>/', views.tournament_detail, name='tournament_detail'),
     path('tournaments/<int:tournament_id>/edit/', views.edit_tournament, name='edit_tournament'),
     path('tournaments/<int:tournament_id>/participate/', views.participate_tournament, name='participate_tournament'),
-
+    path('tournaments/<int:tournament_id>/remove_team/<int:team_id>/', views.remove_team_from_tournament, name='remove_team_from_tournament'),
 
     # Аутентификация
     path('login/',

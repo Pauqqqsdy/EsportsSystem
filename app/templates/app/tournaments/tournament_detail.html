@@ -4,106 +4,117 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>{{ tournament.name }}</h1>
-        {% if is_creator %}
-        <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-primary">Редактировать</a>
-        {% endif %}
+        <div>
+            {% if tournament.bracket %}
+            <a href="{% url 'tournament_bracket' tournament_id=tournament.id %}" class="btn btn-info mr-2">
+                Турнирная сетка
+            </a>
+            {% elif is_creator %}
+            <a href="{% url 'generate_bracket' tournament_id=tournament.id %}" class="btn btn-primary mr-2">
+                Сформировать сетку
+            </a>
+            {% endif %}
+            {% if is_creator %}
+            <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-primary">Редактировать</a>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Информация о турнире</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item">
-                            <strong>Дисциплина:</strong> {{ tournament.get_discipline_display }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Формат игры:</strong> {{ tournament.get_game_format_display }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Формат турнира:</strong> {{ tournament.get_tournament_format_display }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Дата начала:</strong> {{ tournament.start_date|date:"d.m.Y H:i" }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Регион:</strong> {{ tournament.get_location_display }}
-                        </li>
-                        <li class="list-group-item">
-                            <strong>Участники:</strong> {{ registered_count }} команд
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Описание</h5>
-                    <p class="card-text">{{ tournament.description|linebreaks }}</p>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Зарегистрированные команды</h5>
-                    {% if registered_teams %}
-                    <div class="list-group">
-                        {% for team in registered_teams %}
-                        <a href="{% url 'team_page' team_id=team.id %}" class="list-group-item list-group-item-action">
-                            {{ team.name }}
-                        </a>
-                        {% endfor %}
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Информация о турнире</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>Дисциплина:</strong> {{ tournament.get_discipline_display }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Формат игры:</strong> {{ tournament.get_game_format_display }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Формат турнира:</strong> {{ tournament.get_tournament_format_display }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Дата начала:</strong> {{ tournament.start_date|date:"d.m.Y H:i" }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Регион:</strong> {{ tournament.get_location_display }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Участники:</strong> {{ registered_count }} команд
+                            </li>
+                        </ul>
                     </div>
-                    {% else %}
-                    <p class="text-muted">Пока никто не зарегистрировался</p>
-                    {% endif %}
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Описание</h5>
+                        <p class="card-text">{{ tournament.description|linebreaks }}</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Зарегистрированные команды</h5>
+                        {% if registered_teams %}
+                        <div class="list-group">
+                            {% for team in registered_teams %}
+                            <a href="{% url 'team_page' team_id=team.id %}" class="list-group-item list-group-item-action">
+                                {{ team.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Пока никто не зарегистрировался</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Участие</h5>
+                        {% if user.is_authenticated %}
+                        {% if is_registered %}
+                        <div class="alert alert-success">Ваша команда уже зарегистрирована</div>
+                        {% elif tournament.registered_teams_count < tournament.max_teams %}
+                        {% if user_team or tournament.game_format == '1x1' %}
+                        <a href="{% url 'participate_tournament' tournament_id=tournament.id %}" class="btn btn-primary btn-block">
+                            Принять участие
+                        </a>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            Для участия в этом турнире вам нужно быть капитаном команды
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <div class="alert alert-danger">Турнир уже заполнен</div>
+                        {% endif %}
+                        {% else %}
+                        <div class="alert alert-info">
+                            Для участия в турнире необходимо <a href="{% url 'login' %}">войти</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Создатель</h5>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ tournament.creator.userprofile.avatar.url }}"
+                                 alt="{{ tournament.creator.username }}"
+                                 class="rounded-circle mr-3" width="50">
+                            <a href="{% url 'view_profile' username=tournament.creator.username %}">
+                                {{ tournament.creator.username }}
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Участие</h5>
-                    {% if user.is_authenticated %}
-                    {% if is_registered %}
-                    <div class="alert alert-success">Ваша команда уже зарегистрирована</div>
-                    {% elif tournament.registered_teams_count < tournament.max_teams %}
-                    {% if user_team or tournament.game_format == '1x1' %}
-                    <a href="{% url 'participate_tournament' tournament_id=tournament.id %}" class="btn btn-primary btn-block">
-                        Принять участие
-                    </a>
-                    {% else %}
-                    <div class="alert alert-warning">
-                        Для участия в этом турнире вам нужно быть капитаном команды
-                    </div>
-                    {% endif %}
-                    {% else %}
-                    <div class="alert alert-danger">Турнир уже заполнен</div>
-                    {% endif %}
-                    {% else %}
-                    <div class="alert alert-info">
-                        Для участия в турнире необходимо <a href="{% url 'login' %}">войти</a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Создатель</h5>
-                    <div class="d-flex align-items-center">
-                        <img src="{{ tournament.creator.userprofile.avatar.url }}"
-                             alt="{{ tournament.creator.username }}"
-                             class="rounded-circle mr-3" width="50">
-                        <a href="{% url 'view_profile' username=tournament.creator.username %}">
-                            {{ tournament.creator.username }}
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
 {% endblock %}

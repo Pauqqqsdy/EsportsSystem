@@ -1,0 +1,32 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Указание победителя матча</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Турнир: {{ tournament.name }}</h5>
+            <p class="card-text">Этап: {{ match.stage.name }}</p>
+            <p class="card-text">Матч: {{ match.team1.name }} vs {{ match.team2.name }}</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Победитель:</label>
+                    {{ form.winner }}
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'tournament_bracket' tournament_id=tournament.id %}" class="btn btn-secondary">
+                        Отмена
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Сохранить результат
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

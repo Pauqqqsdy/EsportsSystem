@@ -73,10 +73,14 @@
     <Content Include="app\templates\app\service_terms.html" />
     <Content Include="app\templates\app\teams\team_page.html" />
     <Content Include="app\templates\app\teams\edit_team.html" />
+    <Content Include="app\templates\app\tournaments\edit_stage_format.html" />
     <Content Include="app\templates\app\tournaments\edit_tournament.html" />
+    <Content Include="app\templates\app\tournaments\generate_bracket.html" />
     <Content Include="app\templates\app\tournaments\my_tournaments.html" />
     <Content Include="app\templates\app\tournaments\participate_tournament.html" />
+    <Content Include="app\templates\app\tournaments\tournament_bracket.html" />
     <Content Include="app\templates\app\tournaments\tournament_detail.html" />
+    <Content Include="app\templates\app\tournaments\update_match_result.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />

@@ -1,0 +1,28 @@
+{% extends "app/layout.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Изменение формата этапа</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Турнир: {{ tournament.name }}</h5>
+            <p class="card-text">Этап: {{ stage.name }}</p>
+
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'tournament_bracket' tournament_id=tournament.id %}" class="btn btn-secondary">
+                        Отмена
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Сохранить изменения
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

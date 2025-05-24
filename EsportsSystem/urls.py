@@ -39,6 +39,15 @@ urlpatterns = [
     path('tournaments/<int:tournament_id>/edit/', views.edit_tournament, name='edit_tournament'),
     path('tournaments/<int:tournament_id>/participate/', views.participate_tournament, name='participate_tournament'),
     path('tournaments/<int:tournament_id>/remove_team/<int:team_id>/', views.remove_team_from_tournament, name='remove_team_from_tournament'),
+    path('tournaments/<int:tournament_id>/bracket/', views.tournament_bracket, name='tournament_bracket'),
+    path('tournaments/<int:tournament_id>/generate_bracket/', views.generate_bracket, name='generate_bracket'),
+    path('tournaments/<int:tournament_id>/stages/<int:stage_id>/edit/', views.edit_stage_format, name='edit_stage_format'),
+    path('tournaments/<int:tournament_id>/matches/<int:match_id>/update/', views.update_match_result, name='update_match_result'),
+    path('tournaments/<int:tournament_id>/bracket/', views.tournament_bracket, name='tournament_bracket'),
+    path('tournaments/<int:tournament_id>/generate_bracket/', views.generate_bracket, name='generate_bracket'),
+    path('tournaments/<int:tournament_id>/stages/<int:stage_id>/edit/', views.edit_stage_format, name='edit_stage_format'),
+    path('tournaments/<int:tournament_id>/stages/<int:stage_id>/complete/', views.complete_stage, name='complete_stage'),
+    path('tournaments/<int:tournament_id>/matches/<int:match_id>/update/', views.update_match_result, name='update_match_result'),
 
     # Аутентификация
     path('login/',

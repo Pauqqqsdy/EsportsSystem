@@ -1,4 +1,5 @@
 ﻿from datetime import datetime
+import random
 from django.db.models import Q
 from django.http import HttpRequest, JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -7,8 +8,8 @@ from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from .models import Tournament, TournamentRegistration, UserProfile, Team
-from .forms import TeamCreationForm, TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
+from .models import Tournament, TournamentBracket, BracketStage, BracketMatch, TournamentRegistration, UserProfile, Team
+from .forms import BracketGenerationForm, BracketStageForm, MatchResultForm, TeamCreationForm, TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
 from django.contrib.auth import update_session_auth_hash
 from django.utils.crypto import get_random_string
 from django.db import transaction
@@ -466,3 +467,210 @@ def remove_team_from_tournament(request, tournament_id, team_id):
     
     tournament.registered_teams.remove(team)
     return JsonResponse({'success': True})
+
+def create_bracket_stages(bracket, teams):
+    team_count = len(teams)
+    current_round = team_count
+    round_number = 1
+    
+    while current_round >= 2:
+        stage_name = get_stage_name(current_round)
+        stage = BracketStage.objects.create(
+            bracket=bracket,
+            name=stage_name,
+            format=get_default_format(current_round),
+            order=round_number
+        )
+        
+        matches_in_round = current_round // 2
+        for i in range(matches_in_round):
+            team1 = teams[i*2] if i*2 < len(teams) else None
+            team2 = teams[i*2+1] if i*2+1 < len(teams) else None
+            
+            BracketMatch.objects.create(
+                stage=stage,
+                team1=team1,
+                team2=team2,
+                order=i+1
+            )
+        
+        current_round = matches_in_round
+        round_number += 1
+
+@login_required
+def generate_bracket(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может формировать сетку')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if not tournament.registered_teams.exists():
+        messages.error(request, 'Нет зарегистрированных команд для формирования сетки')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = BracketGenerationForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    if hasattr(tournament, 'bracket'):
+                        tournament.bracket.delete()
+                    
+                    bracket = TournamentBracket.objects.create(tournament=tournament)
+                    teams = list(tournament.registered_teams.all())
+                    
+                    if form.cleaned_data['generation_type'] == 'random':
+                        random.shuffle(teams)
+                    
+                    create_bracket_stages(bracket, teams)
+                    
+                    messages.success(request, 'Турнирная сетка успешно создана!')
+                    return redirect('tournament_bracket', tournament_id=tournament.id)
+            
+            except Exception as e:
+                messages.error(request, f'Ошибка при создании сетки: {str(e)}')
+                return redirect('tournament_detail', tournament_id=tournament.id)
+    else:
+        form = BracketGenerationForm()
+    
+    return render(request, 'app/tournaments/generate_bracket.html', {
+        'form': form,
+        'tournament': tournament
+    })
+
+def get_stage_name(team_count):
+    stages = {
+        2: 'Финал',
+        4: 'Полуфиналы',
+        8: 'Четвертьфиналы',
+        16: '1/8 финала',
+        32: '1/16 финала',
+        64: '1/32 финала',
+        128: '1/64 финала',
+        256: '1/128 финала',
+        512: '1/256 финала'
+    }
+    return stages.get(team_count, f'Раунд на {team_count} команд')
+
+def get_default_format(team_count):
+    if team_count <= 4:
+        return 'BO3'
+    elif team_count <= 8:
+        return 'BO3'
+    else:
+        return 'BO1'
+
+@login_required
+def tournament_bracket(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    bracket = getattr(tournament, 'bracket', None)
+    is_creator = tournament.is_creator(request.user) if request.user.is_authenticated else False
+    
+    return render(request, 'app/tournaments/tournament_bracket.html', {
+        'tournament': tournament,
+        'bracket': bracket,
+        'is_creator': is_creator
+    })
+
+@login_required
+def edit_stage_format(request, tournament_id, stage_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    stage = get_object_or_404(BracketStage, id=stage_id, bracket__tournament=tournament)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может изменять формат этапа')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = BracketStageForm(request.POST, instance=stage)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Формат этапа успешно обновлен')
+            return redirect('tournament_bracket', tournament_id=tournament.id)
+    else:
+        form = BracketStageForm(instance=stage)
+    
+    return render(request, 'app/tournaments/edit_stage_format.html', {
+        'form': form,
+        'tournament': tournament,
+        'stage': stage
+    })
+
+@login_required
+def update_match_result(request, tournament_id, match_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    match = get_object_or_404(BracketMatch, id=match_id, stage__bracket__tournament=tournament)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может обновлять результаты')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+
+    if not match.team1 or not match.team2:
+        messages.error(request, 'Обе команды должны быть определены для матча')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = MatchResultForm(request.POST, instance=match)
+        if form.is_valid():
+            match = form.save(commit=False)
+            match.is_completed = True
+            match.save()
+            
+            promote_winner_to_next_stage(match)
+            
+            messages.success(request, 'Результат матча обновлен')
+            return redirect('tournament_bracket', tournament_id=tournament.id)
+    else:
+        form = MatchResultForm(instance=match)
+    
+    return render(request, 'app/tournaments/update_match_result.html', {
+        'form': form,
+        'tournament': tournament,
+        'match': match
+    })
+
+def promote_winner_to_next_stage(match):
+    if not match.winner:
+        return
+    
+    next_stage = BracketStage.objects.filter(
+        bracket=match.stage.bracket,
+        order=match.stage.order + 1
+    ).first()
+    
+    if not next_stage:
+        return
+    
+    match_position = (match.order + 1) // 2
+    next_match = BracketMatch.objects.filter(
+        stage=next_stage,
+        order=match_position
+    ).first()
+    
+    if next_match:
+        if match.order % 2 == 1:
+            next_match.team1 = match.winner
+        else:
+            next_match.team2 = match.winner
+        next_match.save()
+
+@login_required
+def complete_stage(request, tournament_id, stage_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    stage = get_object_or_404(BracketStage, id=stage_id, bracket__tournament=tournament)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может завершать этапы')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    
+    incomplete_matches = stage.matches.filter(is_completed=False).exists()
+    if incomplete_matches:
+        messages.error(request, 'Не все матчи этого этапа завершены')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    
+    stage.is_completed = True
+    stage.save()
+    
+    messages.success(request, f'Этап "{stage.name}" успешно завершен')
+    return redirect('tournament_bracket', tournament_id=tournament.id)

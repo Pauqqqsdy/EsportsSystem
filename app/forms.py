@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
-from .models import Tournament, UserProfile, Team
+from .models import BracketMatch, BracketStage, Tournament, UserProfile, Team
 from django.contrib.admin import widgets
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
@@ -228,3 +228,39 @@ class TournamentEditForm(TournamentForm):
         super().__init__(*args, **kwargs)
         self.fields['discipline'].disabled = True
         self.fields['game_format'].disabled = True
+
+class BracketGenerationForm(forms.Form):
+    GENERATION_CHOICES = [
+        ('random', 'Случайное распределение команд'),
+        ('manual', 'Ручное распределение команд'),
+    ]
+    
+    generation_type = forms.ChoiceField(
+        choices=GENERATION_CHOICES,
+        widget=forms.RadioSelect,
+        label='Способ формирования сетки'
+    )
+
+class BracketStageForm(forms.ModelForm):
+    class Meta:
+        model = BracketStage
+        fields = ['name', 'format']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'format': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+class MatchResultForm(forms.ModelForm):
+    class Meta:
+        model = BracketMatch
+        fields = ['winner']
+        widgets = {
+            'winner': forms.Select(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            self.fields['winner'].queryset = Team.objects.filter(
+                id__in=[self.instance.team1_id, self.instance.team2_id]
+            )

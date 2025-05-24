@@ -234,3 +234,35 @@ def user_deleted(sender, instance, **kwargs):
                 team.delete()
     except UserProfile.DoesNotExist:
         pass
+
+class TournamentBracket(models.Model):
+    FORMAT_CHOICES = [
+        ('BO1', 'Best of 1'),
+        ('BO3', 'Best of 3'),
+        ('BO5', 'Best of 5'),
+    ]
+    
+    tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name='bracket')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class BracketStage(models.Model):
+    bracket = models.ForeignKey(TournamentBracket, on_delete=models.CASCADE, related_name='stages')
+    name = models.CharField(max_length=100)
+    format = models.CharField(max_length=3, choices=TournamentBracket.FORMAT_CHOICES, default='BO3')
+    order = models.PositiveIntegerField()
+    is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['order']
+
+class BracketMatch(models.Model):
+    stage = models.ForeignKey(BracketStage, on_delete=models.CASCADE, related_name='matches')
+    team1 = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='team1_matches', null=True, blank=True)
+    team2 = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='team2_matches', null=True, blank=True)
+    winner = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True)
+    order = models.PositiveIntegerField()
+    is_completed = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['order']

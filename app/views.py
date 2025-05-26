@@ -674,3 +674,24 @@ def complete_stage(request, tournament_id, stage_id):
     
     messages.success(request, f'Этап "{stage.name}" успешно завершен')
     return redirect('tournament_bracket', tournament_id=tournament.id)
+
+@login_required
+def cancel_tournament_participation(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    user_profile = request.user.userprofile
+    team = user_profile.team
+
+    # Проверяем, состоит ли пользователь в команде и является ли он капитаном
+    if not team or not team.is_captain(request.user):
+        messages.error(request, 'Только капитан может отменить регистрацию команды')
+        return redirect('team_page', team_id=team.id)
+
+    # Убираем команду из турнира
+    try:
+        registration = TournamentRegistration.objects.get(tournament=tournament, team=team)
+        registration.delete()
+        messages.success(request, 'Вы успешно отменили регистрацию вашей команды')
+    except TournamentRegistration.DoesNotExist:
+        messages.warning(request, 'Команда не была зарегистрирована на этот турнир')
+
+    return redirect('tournament_detail', tournament_id=tournament.id)

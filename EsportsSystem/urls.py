@@ -48,6 +48,7 @@ urlpatterns = [
     path('tournaments/<int:tournament_id>/stages/<int:stage_id>/edit/', views.edit_stage_format, name='edit_stage_format'),
     path('tournaments/<int:tournament_id>/stages/<int:stage_id>/complete/', views.complete_stage, name='complete_stage'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/update/', views.update_match_result, name='update_match_result'),
+    path('tournament/<int:tournament_id>/cancel/', views.cancel_tournament_participation, name='cancel_tournament_participation'),
 
     # Аутентификация
     path('login/',

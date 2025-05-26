@@ -141,7 +141,11 @@ class TeamCreationForm(forms.ModelForm):
     
     def clean_name(self):
         name = self.cleaned_data['name']
-        if Team.objects.filter(name__iexact=name).exists():
+        # Получаем текущий экземпляр команды из формы
+        current_team = self.instance
+
+        # Проверяем, существует ли команда с таким именем, исключая текущую (если редактируем)
+        if Team.objects.filter(name__iexact=name).exclude(pk=current_team.pk).exists():
             raise forms.ValidationError("Команда с таким названием уже существует")
         return name
 

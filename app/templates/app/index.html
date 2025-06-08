@@ -1,9 +1,262 @@
 ﻿{% extends "app/layout.html" %}
+{% load static %}
 
 {% block content %}
+<style>
+    body {
+        background-color: #1a1a2e;
+        color: #e6e6e6;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-<div class="jumbotron">
-    <h1>Турниры для Вас</h1>
+    /* Боковая панель */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 200px; 
+        background-color: #16213e;
+        padding: 20px;
+        min-height: 100vh;
+        border-right: 1px solid #2d2d42;
+    }
+
+        .sidebar h5 {
+            margin-bottom: 1.5rem;
+            color: #e6e6e6;
+        }
+
+        .sidebar a {
+            color: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            width: 100%;
+            padding: 10px;
+            transition: background-color 0.3s;
+        }
+
+            .sidebar a span {
+                text-align: center; 
+            }
+
+            .sidebar a:hover {
+                background-color: #2d2d42;
+                border-radius: 8px;
+            }
+
+    .game-icon {
+        width: 40px; 
+        height: 40px; 
+        object-fit: cover;
+        border-radius: 10px; 
+        margin-right: 10px;
+    }
+
+    /* Заголовок */
+    .header {
+        padding: 0px;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #2d2d42;
+    }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #4cc9f0, #f72585);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+    /* Карточки турниров */
+    .tournament-card {
+        background-color: #16213e;
+        border-left: 4px solid #4cc9f0;
+        transition: transform 0.3s;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+        .tournament-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+    .tournament-img {
+        width: 100%;
+        height: 200px; 
+        object-fit: cover;
+        background-color: #2d2d42;
+    }
+
+    .tournament-body {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .tournament-time {
+        color: #4cc9f0;
+        font-weight: bold;
+        font-size: 1.1rem; 
+    }
+
+    .tournament-title {
+        font-size: 1.4rem; 
+        font-weight: bold;
+    }
+
+    .tournament-meta {
+        color: #a8a8a8;
+        font-size: 1rem; 
+    }
+
+    .tournament-tag {
+        display: inline-block;
+        background-color: #4cc9f033;
+        color: #4cc9f0;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+    }
+
+    /* Кнопка подробнее */
+    .btn-info {
+        background-color: #4cc9f0;
+        border: none;
+        color: white;
+        font-weight: bold;
+        width: 100%;
+        height: 40px;
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+
+        .btn-info:hover {
+            background-color: #3aa7cc;
+        }
+
+    /* Иконка игры в карточке */
+    .tournament-game {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .tournament-game-icon {
+        width: 30px;
+        height: 30px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 768px) {
+        .sidebar {
+            display: none;
+        }
+
+        .main-content {
+            margin-left: 0;
+        }
+    }
+</style>
+
+<!-- Боковая панель -->
+<div class="sidebar">
+    <h5 class="text-white">Игры</h5>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex align-items-center">
+            <a href="{% url 'tournaments' %}?discipline=Dota%202" class="w-100 d-flex align-items-center">
+                <img src="{% static 'app/images/dota 2.png' %}" alt="Dota 2" class="game-icon">
+                <span>DOTA 2</span>
+            </a>
+        </li>
+        <li class="list-group-item d-flex align-items-center">
+            <a href="{% url 'tournaments' %}?discipline=CS%202" class="w-100 d-flex align-items-center">
+                <img src="{% static 'app/images/cs 2.png' %}" alt="CS 2" class="game-icon">
+                <span>CS 2</span>
+            </a>
+        </li>
+        <li class="list-group-item d-flex align-items-center">
+            <a href="{% url 'tournaments' %}?discipline=Valorant" class="w-100 d-flex align-items-center">
+                <img src="{% static 'app/images/valorant.png' %}" alt="Valorant" class="game-icon">
+                <span>VALORANT</span>
+            </a>
+        </li>
+        <li class="list-group-item d-flex align-items-center">
+            <a href="{% url 'tournaments' %}?discipline=LoL" class="w-100 d-flex align-items-center">
+                <img src="{% static 'app/images/lol.png' %}" alt="League of Legends" class="game-icon">
+                <span>LEAGUE OF LEGENDS</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- Основной контент -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12 bg-dark main-content px-4 py-4">
+            <div class="header text-center">
+                <h1>Турниры для Вас</h1>
+            </div>
+
+            {% if tournaments %}
+            <div class="row">
+                {% for t in tournaments %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="tournament-card">
+                        <img src="{% static 'app/images/default-tournament.jpg' %}" class="tournament-img" alt="Tournament Image">
+
+                        <div class="tournament-body">
+                            <!-- Игра -->
+                            <div class="tournament-game">
+                                <img src="{% static 'app/images/'|add:t.discipline|lower|add:'.png' %}"
+                                     alt="{{ t.discipline }}"
+                                     class="tournament-game-icon me-2">
+                                <div>
+                                    <!-- Дата начала -->
+                                    <div class="tournament-time">
+                                        {{ t.start_date|date:"d M, H:i" }}
+                                    </div>
+                                    <!-- Название турнира -->
+                                    <div class="tournament-title mt-2">
+                                        {{ t.name }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Формат и места -->
+                            <div class="tournament-meta">
+                                {{ t.game_format }} • {{ t.max_teams }} мест
+                            </div>
+
+                            <!-- Локация -->
+                            <div class="tournament-tag">
+                                {{ t.get_location_display }}
+                            </div>
+
+                            <!-- Кнопка подробнее -->
+                            <a href="/tournaments/{{ t.id }}/" class="btn btn-info btn-sm mt-2 w-100">Подробнее</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center mt-4">
+                <p class="text-muted">Пока нет предстоящих турниров.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 {% endblock %}

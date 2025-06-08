@@ -53,6 +53,7 @@
     <Folder Include="app\static\app\" />
     <Folder Include="app\static\app\content\" />
     <Folder Include="app\static\app\fonts\" />
+    <Folder Include="app\static\app\images\" />
     <Folder Include="app\static\app\scripts\" />
     <Folder Include="app\templates\" />
     <Folder Include="app\templates\app\" />
@@ -64,6 +65,7 @@
     <Folder Include="EsportsSystem\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="app\static\app\images\dota.png" />
     <Content Include="app\templates\app\profile\change_password.html" />
     <Content Include="app\templates\app\teams\create_team.html" />
     <Content Include="app\templates\app\tournaments\create_tournament.html" />

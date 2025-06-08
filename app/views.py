@@ -14,19 +14,27 @@ from django.contrib.auth import update_session_auth_hash
 from django.utils.crypto import get_random_string
 from django.db import transaction
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
+from django.utils import timezone
 
 def home(request):
     assert isinstance(request, HttpRequest)
+
+    # Фильтруем только будущие турниры (начало >= текущей даты)
+    tournaments = Tournament.objects.filter(
+        start_date__gte=timezone.now()
+    ).order_by('start_date')[:6]  # Берём первые 6
+
     return render(
         request,
         'app/index.html',
         {
-            'title':'ZXC.Tournament',
-            'year':datetime.now().year,
+            'title': 'ZXC.Tournament',
+            'year': datetime.now().year,
+            'tournaments': tournaments,
         }
     )
-
 def register(request):
     if request.method == 'POST':
         form = ExtendedUserCreationForm(request.POST)

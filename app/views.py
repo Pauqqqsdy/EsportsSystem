@@ -313,6 +313,8 @@ def tournaments(request):
     region = request.GET.get('region')
     discipline = request.GET.get('discipline')
     game_format = request.GET.get('game_format')
+    status = request.GET.get('status') 
+
     tournaments_qs = Tournament.objects.filter(is_active=True).order_by('-created_at')
 
     if region:
@@ -322,6 +324,9 @@ def tournaments(request):
     if game_format:
         tournaments_qs = tournaments_qs.filter(game_format=game_format)
 
+    if status == 'upcoming':
+        tournaments_qs = tournaments_qs.filter(start_date__gt=timezone.now())
+
     context = {
         'tournaments': tournaments_qs,
         'regions': Tournament.LOCATION_CHOICES,
@@ -330,6 +335,7 @@ def tournaments(request):
         'selected_region': region,
         'selected_discipline': discipline,
         'selected_game_format': game_format,
+        'selected_status': status, 
         'title': 'Турниры',
     }
     return render(request, 'app/tournaments/tournaments.html', context)
@@ -357,6 +363,8 @@ def tournament_detail(request, tournament_id):
         user_team = request.user.userprofile.team
         if user_team:
             is_registered = tournament.is_registered(user_team)
+
+    registered_count = tournament.registered_teams.count()
     
     context = {
         'tournament': tournament,
@@ -364,7 +372,7 @@ def tournament_detail(request, tournament_id):
         'user_team': user_team,
         'is_registered': is_registered,
         'registered_teams': tournament.registered_teams.all(),
-        'registered_count': f"{tournament.registered_teams_count()}/{tournament.max_teams}",
+        'registered_count': registered_count,
     }
     
     return render(request, 'app/tournaments/tournament_detail.html', context)

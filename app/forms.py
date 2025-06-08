@@ -10,11 +10,11 @@ class BootstrapAuthenticationForm(AuthenticationForm):
     username = forms.CharField(max_length=16,
                                widget=forms.TextInput({
                                    'class': 'form-control',
-                                   'placeholder': 'User name'}))
+                                   'placeholder': 'Логин'}))
     password = forms.CharField(label=_("Password"),
                                widget=forms.PasswordInput({
                                    'class': 'form-control',
-                                   'placeholder':'Password'}))
+                                   'placeholder':'Пароль'}))
 
 class ExtendedUserCreationForm(UserCreationForm):
     email = forms.EmailField(

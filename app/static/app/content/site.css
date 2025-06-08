@@ -41,22 +41,20 @@ input[type="checkbox"].input-validation-error {
     display: none;
 }
 
-/* Боковая панель */
 .sidebar {
     padding: 20px;
-    color: #e6e6e6; /* Белый текст */
-    background-color: #16213e; /* Темный фон */
+    color: #e6e6e6; 
+    background-color: #16213e; 
 }
 
-/* Стили для списка игр */
 .list-group-item {
-    background-color: transparent; /* Убираем белый фон */
-    color: #e6e6e6; /* Белый текст */
-    border: none; /* Убираем границы */
+    background-color: transparent; 
+    color: #e6e6e6; 
+    border: none; 
 }
 
 .list-group-item:hover {
-    background-color: #2d2d42; /* Немного светлее при наведении */
+    background-color: #2d2d42; 
     cursor: pointer;
 }
 
@@ -65,20 +63,20 @@ input[type="checkbox"].input-validation-error {
     height: 30px;
     border-radius: 8px;
 }
-/* Основной контент */
+
 .main-content {
     padding: 20px;
-    background-color: #1a1a2e; /* Темный фон */
+    background-color: #1a1a2e; 
 }
 
-/* Цвета */
+
 .text-pink {
-    color: #ff00ff; /* Фиолетовый цвет */
+    color: #ff00ff; 
 }
 
-/* Корректировка общего фона */
+
 body {
-    background-color: #1a1a2e; /* Темный фон */
+    background-color: #1a1a2e; 
     color: #e6e6e6;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -90,27 +88,26 @@ body {
     color: white;
     font-weight: bold;
     width: 100%;
-    height: 40px; /* Увеличенная высота */
-    padding: 10px 20px; /* Больше отступов */
+    height: 40px; 
+    padding: 10px 20px; 
 }
 
     .btn-info:hover {
         background-color: #3aa7cc;
     }
 
-/* Элементы в карточке турнира */
 .tournament-body {
     padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 5px; /* Расстояние между элементами */
+    gap: 5px; 
 }
 
 .tournament-time,
 .tournament-title,
 .tournament-meta,
 .tournament-tag {
-    margin-bottom: 5px; /* Поля между элементами */
+    margin-bottom: 5px; 
 }
 
 .tournament-game-icon {

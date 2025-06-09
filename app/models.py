@@ -179,7 +179,13 @@ class Team(models.Model):
     def clean(self):
         if self.member_count() > 8:
             raise ValidationError("Команда не может содержать более 8 участников")
-
+    def get_all_members(self):
+        if not self.pk:
+            return []
+        members = list(self.members.all())
+        if self.captain not in members:
+            members.insert(0, self.captain)
+        return members
     def delete_if_empty(self):
         if self.member_count() == 0:
             self.delete()

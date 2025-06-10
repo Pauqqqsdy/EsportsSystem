@@ -15,7 +15,7 @@ from django.utils.crypto import get_random_string
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from django.contrib.auth.views import PasswordResetView
+from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmView
 
 class CustomPasswordResetView(PasswordResetView):
     template_name = 'registration/password_reset_form.html'
@@ -39,6 +39,19 @@ class CustomPasswordResetView(PasswordResetView):
             'html_email_template_name': None,
         }
         form.save(**opts)
+        return super().form_valid(form)
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'registration/password_reset_confirm.html'
+    success_url = '/reset/done/'
+    
+    def form_valid(self, form):
+        user = form.save()
+        
+        login(self.request, user)
+        
+        messages.success(self.request, 'Пароль успешно изменён! Вы автоматически вошли в систему.')
+        
         return super().form_valid(form)
 
 def home(request):

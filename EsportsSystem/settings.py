@@ -9,7 +9,7 @@ SECRET_KEY = '271116aa-008b-4294-857a-ea200fb54f7b'
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
 INSTALLED_APPS = [
@@ -101,3 +101,5 @@ LOGOUT_REDIRECT_URL = 'home'
 
 SITE_ID = 1
 SITE_NAME = "ZXC.Tournament"
+
+PASSWORD_RESET_TIMEOUT = 3600

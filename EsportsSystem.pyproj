@@ -88,7 +88,7 @@
     <Content Include="app\templates\app\tournaments\update_match_result.html" />
     <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
-    <Content Include="app\templates\registration\password_reset_email.html" />
+    <Content Include="app\templates\registration\password_reset_email.txt" />
     <Content Include="app\templates\registration\password_reset_form.html" />
     <Content Include="app\templates\app\profile\profile.html" />
     <Content Include="app\templates\app\auth\register.html" />

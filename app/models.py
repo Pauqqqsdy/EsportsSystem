@@ -53,7 +53,7 @@ class Tournament(models.Model):
     start_date = models.DateTimeField(verbose_name="Дата начала")
     discipline = models.CharField(max_length=50, choices=DISCIPLINE_CHOICES, verbose_name="Дисциплина")
     game_format = models.CharField(max_length=50, choices=FORMAT_CHOICES, verbose_name="Формат игры")
-    tournament_format = models.CharField(max_length=50, choices=TOURNAMENT_FORMAT_CHOICES, verbose_name="Формат турнира", default='single_elimination')
+    tournament_format = models.CharField(max_length=50, choices=TOURNAMENT_FORMAT_CHOICES, verbose_name="Формат турнира", blank=True, null=True)
     location = models.CharField(max_length=50, choices=LOCATION_CHOICES, verbose_name="Локация")
     description = models.TextField(verbose_name="Описание", blank=True, null=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Создатель")

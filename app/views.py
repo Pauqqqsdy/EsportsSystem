@@ -572,11 +572,11 @@ def generate_bracket(request, tournament_id):
     
     if teams_count == 0:
         messages.error(request, 'Нет зарегистрированных команд для формирования сетки')
-        return redirect('tournament_detail', tournament_id=tournament.id)
+        return redirect(f'/tournaments/{tournament_id}/?tab=overview')
     
     if teams_count < 2:
-        messages.error(request, 'Для формирования сетки требуется не менее двух участников')
-        return redirect('tournament_detail', tournament_id=tournament.id)
+        messages.error(request, 'Формирование турнирной сетки доступно от двух участников и больше')
+        return redirect(f'/tournaments/{tournament_id}/?tab=overview')
     
     if request.method == 'POST':
         form = BracketGenerationForm(request.POST)

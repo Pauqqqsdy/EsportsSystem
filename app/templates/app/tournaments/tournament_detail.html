@@ -14,9 +14,9 @@
     }
 
         .nav-link.active {
-            color: #ffffff !important;
-            background-color: transparent !important;
-        }
+    color: #ffffff !important;
+    background-color: transparent !important;
+}
 
     /* Блоки информации */
     .info-block {
@@ -152,9 +152,33 @@
         gap: 5px;
         margin-bottom: 20px;
     }
+    
+    /* Убеждаемся, что вкладка "Обзор" видна по умолчанию */
+    .tab-content .tab-pane {
+        display: none;
+    }
+    .tab-content .tab-pane.show.active {
+        display: block !important;
+    }
 </style>
 
 <div class="container">
+    <!-- Отображение сообщений -->
+    {% if messages %}
+    <div class="row">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="row">
         <!-- Левая колонка -->
         <div class="col-md-8">
@@ -215,11 +239,11 @@
                         {% for team in registered_teams %}
                         <div class="team-card">
                             {% if tournament.game_format == '1x1' %}
-                            <img src="{{ team.captain.userprofile.avatar.url }}" alt="{{ team.captain.username }}">
-                            <a href="{% url 'view_profile' username=team.captain.username %}">{{ team.captain.username }}</a>
+                                <img src="{{ team.captain.userprofile.avatar.url }}" alt="{{ team.captain.username }}">
+                                <a href="{% url 'view_profile' username=team.captain.username %}">{{ team.captain.username }}</a>
                             {% else %}
-                            <img src="{{ team.avatar.url }}" alt="{{ team.name }}">
-                            <a href="{% url 'team_page' team_id=team.id %}">{{ team.name }}</a>
+                                <img src="{{ team.avatar.url }}" alt="{{ team.name }}">
+                                <a href="{% url 'team_page' team_id=team.id %}">{{ team.name }}</a>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -237,7 +261,7 @@
             <div class="right-column">
                 <div class="info-box">
                     <h5>Формат турнира</h5>
-                    <p>{{ tournament.get_tournament_format_display }}</p>
+                    <p>{% if tournament.tournament_format %}{{ tournament.get_tournament_format_display }}{% else %}Не указан{% endif %}</p>
                 </div>
                 <div class="info-box">
                     <h5>Дата проведения</h5>
@@ -321,4 +345,31 @@
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    setTimeout(function() {
+        $('.nav-tabs .nav-link').removeClass('active');
+        $('.tab-content .tab-pane').removeClass('show active');       
+        $('.nav-tabs .nav-link[href="#overview"]').addClass('active');
+        $('#overview').addClass('show active');
+        $('#overview').show();
+        $('#bracket, #matches, #teams').hide();
+    }, 100);
+    
+    $('.nav-tabs .nav-link').on('click', function(e) {
+        e.preventDefault();
+        
+        $('.nav-tabs .nav-link').removeClass('active');
+        $('.tab-content .tab-pane').removeClass('show active');
+        
+        $(this).addClass('active');
+        const targetTab = $(this).attr('href');
+        $(targetTab).addClass('show active');
+        
+        $('.tab-content .tab-pane').hide();
+        $(targetTab).show();
+    });
+});
+</script>
 {% endblock %}

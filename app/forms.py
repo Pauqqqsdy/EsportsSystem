@@ -165,6 +165,10 @@ class TournamentForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-control'})
         
+        # Добавляем пустой выбор для формата турнира
+        tournament_format_choices = [('', '--------')] + list(Tournament.TOURNAMENT_FORMAT_CHOICES)
+        self.fields['tournament_format'].choices = tournament_format_choices
+        
         if self.instance and self.instance.pk:
             self.fields['discipline'].disabled = True
             self.fields['game_format'].disabled = True
@@ -203,6 +207,12 @@ class TournamentForm(forms.ModelForm):
         if start_date and start_date < timezone.now():
             raise forms.ValidationError("Невозможно назначить турнир в уже прошедшую дату")
         return start_date
+    
+    def clean_tournament_format(self):
+        tournament_format = self.cleaned_data.get('tournament_format')
+        if not tournament_format:
+            raise forms.ValidationError("Необходимо выбрать формат турнира")
+        return tournament_format
 
 class TournamentParticipationForm(forms.Form):
     def __init__(self, *args, **kwargs):

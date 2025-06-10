@@ -125,7 +125,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function confirmRemoveTeam(teamId, teamName) {
-    if (confirm(`Вы уверены, что хотите удалить команду "${teamName}" из турнира?`)) {
+    const isOneVsOne = '{{ tournament.game_format }}' === '1x1';
+    const participantType = isOneVsOne ? 'участника' : 'команду';
+    const confirmMessage = `Вы уверены, что хотите исключить ${participantType} "${teamName}" из турнира?`;
+
+    if (confirm(confirmMessage)) {
         fetch(`/tournaments/{{ tournament.id }}/remove_team/${teamId}/`, {
             method: 'POST',
             headers: {

@@ -21,6 +21,12 @@ class Tournament(models.Model):
         ('5x5', '5x5'),
     ]
     
+    TOURNAMENT_FORMAT_CHOICES = [
+        ('single_elimination', 'Single Elimination'),
+        ('double_elimination', 'Double Elimination'),
+        ('round_robin', 'Round Robin'),
+    ]
+    
     TEAM_COUNT_CHOICES = [
         (2, '2'),
         (4, '4'),
@@ -47,6 +53,7 @@ class Tournament(models.Model):
     start_date = models.DateTimeField(verbose_name="Дата начала")
     discipline = models.CharField(max_length=50, choices=DISCIPLINE_CHOICES, verbose_name="Дисциплина")
     game_format = models.CharField(max_length=50, choices=FORMAT_CHOICES, verbose_name="Формат игры")
+    tournament_format = models.CharField(max_length=50, choices=TOURNAMENT_FORMAT_CHOICES, verbose_name="Формат турнира", default='single_elimination')
     location = models.CharField(max_length=50, choices=LOCATION_CHOICES, verbose_name="Локация")
     description = models.TextField(verbose_name="Описание", blank=True, null=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Создатель")
@@ -84,8 +91,8 @@ class Tournament(models.Model):
         return f"{self.registered_teams_count()}/{self.max_teams}"
 
     def clean(self):
-        if self.start_date < timezone.now():
-            raise ValidationError("Дата начала турнира не может быть в прошлом")
+        if self.start_date and self.start_date < timezone.now():
+            raise ValidationError("Невозможно назначить турнир в уже прошедшую дату")
 
 
 class TournamentRegistration(models.Model):

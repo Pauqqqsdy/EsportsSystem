@@ -54,6 +54,15 @@
                     {% endif %}
                 </div>
 
+                <!-- Формат турнира -->
+                <div class="form-group mb-3">
+                    <label for="{{ form.tournament_format.id_for_label }}">Формат турнира*</label>
+                    {{ form.tournament_format }}
+                    {% if form.tournament_format.errors %}
+                    <div class="text-danger">{{ form.tournament_format.errors }}</div>
+                    {% endif %}
+                </div>
+
                 <!-- Локация -->
                 <div class="form-group mb-3">
                     <label for="{{ form.location.id_for_label }}">Локация турнира*</label>
@@ -81,27 +90,27 @@
 
 {% block scripts %}
 <script>
-$(document).ready(function() {
-    $('#id_discipline').change(function() {
-        var discipline = $(this).val();
-        var $gameFormat = $('#id_game_format');
+    $(document).ready(function () {
+        $('#id_discipline').change(function () {
+            var discipline = $(this).val();
+            var $gameFormat = $('#id_game_format');
 
-        $gameFormat.empty();
+            $gameFormat.empty();
 
-        if (discipline === 'Dota 2') {
-            $gameFormat.append('<option value="1x1">1x1</option>');
-            $gameFormat.append('<option value="5x5">5x5</option>');
-        } else if (discipline === 'CS 2' || discipline === 'LoL') {
-            $gameFormat.append('<option value="1x1">1x1</option>');
-            $gameFormat.append('<option value="2x2">2x2</option>');
-            $gameFormat.append('<option value="5x5">5x5</option>');
-        } else if (discipline === 'Valorant') {
-            $gameFormat.append('<option value="1x1">1x1</option>');
-            $gameFormat.append('<option value="2x2">2x2</option>');
-            $gameFormat.append('<option value="3x3">3x3</option>');
-            $gameFormat.append('<option value="5x5">5x5</option>');
-        }
+            if (discipline === 'Dota 2') {
+                $gameFormat.append('<option value="1x1">1x1</option>');
+                $gameFormat.append('<option value="5x5">5x5</option>');
+            } else if (discipline === 'CS 2' || discipline === 'LoL') {
+                $gameFormat.append('<option value="1x1">1x1</option>');
+                $gameFormat.append('<option value="2x2">2x2</option>');
+                $gameFormat.append('<option value="5x5">5x5</option>');
+            } else if (discipline === 'Valorant') {
+                $gameFormat.append('<option value="1x1">1x1</option>');
+                $gameFormat.append('<option value="2x2">2x2</option>');
+                $gameFormat.append('<option value="3x3">3x3</option>');
+                $gameFormat.append('<option value="5x5">5x5</option>');
+            }
+        });
     });
-});
 </script>
 {% endblock %}

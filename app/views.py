@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from .models import Tournament, TournamentBracket, BracketStage, BracketMatch, TournamentRegistration, UserProfile, Team
 from .forms import BracketGenerationForm, BracketStageForm, MatchResultForm, TeamCreationForm, TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
@@ -16,15 +16,12 @@ from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
-from django.utils import timezone
-
 def home(request):
     assert isinstance(request, HttpRequest)
 
-    # Фильтруем только будущие турниры (начало >= текущей даты)
     tournaments = Tournament.objects.filter(
         start_date__gte=timezone.now()
-    ).order_by('start_date')[:6]  # Берём первые 6
+    ).order_by('start_date')[:6]
 
     return render(
         request,
@@ -347,8 +344,15 @@ def create_tournament(request):
         if form.is_valid():
             tournament = form.save(commit=False)
             tournament.creator = request.user
-            tournament.save()
-            return redirect('tournaments')
+            try:
+                tournament.full_clean()
+                tournament.save()
+                messages.success(request, 'Турнир успешно создан!')
+                return redirect('tournaments')
+            except ValidationError as e:
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        messages.error(request, error)
     else:
         form = TournamentForm()
     return render(request, 'app/tournaments/create_tournament.html', {'form': form})
@@ -360,9 +364,16 @@ def tournament_detail(request, tournament_id):
     is_registered = False
     
     if request.user.is_authenticated and hasattr(request.user, 'userprofile'):
-        user_team = request.user.userprofile.team
-        if user_team:
-            is_registered = tournament.is_registered(user_team)
+        # Для турниров 1x1 проверяем регистрацию по капитану или участнику
+        if tournament.game_format == '1x1':
+            is_registered = tournament.registered_teams.filter(
+                Q(captain=request.user) | Q(members=request.user)
+            ).exists()
+        else:
+            # Для обычных турниров проверяем через команду пользователя
+            user_team = request.user.userprofile.team
+            if user_team:
+                is_registered = tournament.is_registered(user_team)
 
     registered_count = tournament.registered_teams.count()
     
@@ -404,21 +415,40 @@ def participate_tournament(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user_profile = request.user.userprofile
     
-    if not user_profile.team:
-        if tournament.game_format != '1x1':
-            messages.error(request, 'Для участия в этом турнире вам нужно состоять в команде')
+    # Проверяем, есть ли уже регистрация пользователя в турнире 1x1
+    if tournament.game_format == '1x1':
+        # Проверяем, зарегистрирован ли пользователь через какую-либо команду
+        existing_registration = tournament.registered_teams.filter(
+            Q(captain=request.user) | Q(members=request.user)
+        ).first()
+        
+        if existing_registration:
+            messages.warning(request, 'Вы уже зарегистрированы на этот турнир')
             return redirect('tournament_detail', tournament_id=tournament.id)
+        
+        if tournament.registered_teams_count() >= tournament.max_teams:
+            messages.error(request, 'Турнир уже заполнен')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+        
+        # Создаем команду только для участия в турнире, не привязывая к профилю
         team = Team.objects.create(
-            name=f"{request.user.username}_temp",
+            name=request.user.username,  # Используем имя пользователя, а не _temp
             captain=request.user
         )
-        user_profile.team = team
-        user_profile.save()
-    else:
-        team = user_profile.team
-        if not team.is_captain(request.user) and tournament.game_format != '1x1':
-            messages.error(request, 'Только капитан может зарегистрировать команду на турнир')
-            return redirect('tournament_detail', tournament_id=tournament.id)
+        
+        tournament.registered_teams.add(team)
+        messages.success(request, 'Вы успешно зарегистрированы на турнир!')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    # Для турниров не 1x1 требуется команда
+    if not user_profile.team:
+        messages.error(request, 'Для участия в этом турнире вам нужно состоять в команде')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    team = user_profile.team
+    if not team.is_captain(request.user):
+        messages.error(request, 'Только капитан может зарегистрировать команду на турнир')
+        return redirect('tournament_detail', tournament_id=tournament.id)
     
     if tournament.is_registered(team):
         messages.warning(request, 'Ваша команда уже зарегистрирована на этот турнир')
@@ -426,11 +456,6 @@ def participate_tournament(request, tournament_id):
     
     if tournament.registered_teams_count() >= tournament.max_teams:
         messages.error(request, 'Турнир уже заполнен')
-        return redirect('tournament_detail', tournament_id=tournament.id)
-    
-    if tournament.game_format == '1x1':
-        tournament.registered_teams.add(team)
-        messages.success(request, 'Вы успешно зарегистрированы на турнир!')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
     if request.method == 'POST':
@@ -482,6 +507,28 @@ def remove_team_from_tournament(request, tournament_id, team_id):
         return JsonResponse({'success': False, 'error': 'Эта команда не зарегистрирована на турнир'}, status=400)
     
     tournament.registered_teams.remove(team)
+    
+    # Удаляем команду, если она была создана для турнира 1x1 и не привязана к профилю
+    if tournament.game_format == '1x1' and (not hasattr(team.captain, 'userprofile') or team.captain.userprofile.team != team):
+        team.delete()
+    
+    return JsonResponse({'success': True})
+
+@login_required
+@require_POST
+def delete_tournament(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_creator(request.user):
+        return JsonResponse({'success': False, 'error': 'Только создатель может удалить турнир'}, status=403)
+    
+    # Удаляем временные команды, созданные для турниров 1x1
+    if tournament.game_format == '1x1':
+        for team in tournament.registered_teams.all():
+            if not hasattr(team.captain, 'userprofile') or team.captain.userprofile.team != team:
+                team.delete()
+    
+    tournament.delete()
     return JsonResponse({'success': True})
 
 def create_bracket_stages(bracket, teams):
@@ -521,8 +568,14 @@ def generate_bracket(request, tournament_id):
         messages.error(request, 'Только создатель турнира может формировать сетку')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
-    if not tournament.registered_teams.exists():
+    teams_count = tournament.registered_teams.count()
+    
+    if teams_count == 0:
         messages.error(request, 'Нет зарегистрированных команд для формирования сетки')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if teams_count < 2:
+        messages.error(request, 'Для формирования сетки требуется не менее двух участников')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
     if request.method == 'POST':
@@ -695,12 +748,31 @@ def complete_stage(request, tournament_id, stage_id):
 def cancel_tournament_participation(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user_profile = request.user.userprofile
+
+    # Для турниров 1x1 ищем команду пользователя среди зарегистрированных
+    if tournament.game_format == '1x1':
+        user_team = tournament.registered_teams.filter(captain=request.user).first()
+        if not user_team:
+            messages.warning(request, 'Вы не зарегистрированы на этот турнир')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+        
+        # Убираем команду из турнира
+        tournament.registered_teams.remove(user_team)
+        
+        # Удаляем временную команду, если она не привязана к профилю
+        if not hasattr(user_team.captain, 'userprofile') or user_team.captain.userprofile.team != user_team:
+            user_team.delete()
+        
+        messages.success(request, 'Вы успешно отменили участие в турнире')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+
+    # Для обычных турниров требуется команда
     team = user_profile.team
 
     # Проверяем, состоит ли пользователь в команде и является ли он капитаном
     if not team or not team.is_captain(request.user):
         messages.error(request, 'Только капитан может отменить регистрацию команды')
-        return redirect('team_page', team_id=team.id)
+        return redirect('team_page', team_id=team.id if team else 0)
 
     # Убираем команду из турнира
     try:

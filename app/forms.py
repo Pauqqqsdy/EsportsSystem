@@ -5,6 +5,7 @@ from .models import BracketMatch, BracketStage, Tournament, UserProfile, Team
 from django.contrib.admin import widgets
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class BootstrapAuthenticationForm(AuthenticationForm):
     username = forms.CharField(max_length=16,
@@ -153,7 +154,7 @@ class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
         fields = ['name', 'max_teams', 'start_date', 'discipline', 
-                 'game_format', 'location', 'description']
+                 'game_format', 'tournament_format', 'location', 'description']
         widgets = {
             'start_date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
@@ -196,6 +197,12 @@ class TournamentForm(forms.ModelForm):
                 ('3x3', '3x3'),
                 ('5x5', '5x5'),
             ]
+    
+    def clean_start_date(self):
+        start_date = self.cleaned_data.get('start_date')
+        if start_date and start_date < timezone.now():
+            raise forms.ValidationError("Невозможно назначить турнир в уже прошедшую дату")
+        return start_date
 
 class TournamentParticipationForm(forms.Form):
     def __init__(self, *args, **kwargs):

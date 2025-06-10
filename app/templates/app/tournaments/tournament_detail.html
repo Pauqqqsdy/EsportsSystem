@@ -14,9 +14,9 @@
     }
 
         .nav-link.active {
-    color: #ffffff !important;
-    background-color: transparent !important;
-}
+            color: #ffffff !important;
+            background-color: transparent !important;
+        }
 
     /* Блоки информации */
     .info-block {
@@ -169,7 +169,7 @@
             <!-- Вкладки -->
             <ul class="nav nav-tabs">
                 <li class="nav-item">
-                    <a class="nav-link" href="#overview" data-toggle="tab">Обзор</a>
+                    <a class="nav-link active" href="#overview" data-toggle="tab">Обзор</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#bracket" data-toggle="tab">Сетка</a>
@@ -185,7 +185,7 @@
             <!-- Тело вкладок -->
             <div class="tab-content">
                 <!-- Вкладка "Обзор" -->
-                <div id="overview" class="tab-pane fade">
+                <div id="overview" class="tab-pane fade show active">
                     <div class="info-block">
                         <h5>Информация</h5>
                         <p><strong>Локация:</strong> {{ tournament.get_location_display }}</p>
@@ -214,8 +214,13 @@
                     <div class="team-list">
                         {% for team in registered_teams %}
                         <div class="team-card">
+                            {% if tournament.game_format == '1x1' %}
+                            <img src="{{ team.captain.userprofile.avatar.url }}" alt="{{ team.captain.username }}">
+                            <a href="{% url 'view_profile' username=team.captain.username %}">{{ team.captain.username }}</a>
+                            {% else %}
                             <img src="{{ team.avatar.url }}" alt="{{ team.name }}">
                             <a href="{% url 'team_page' team_id=team.id %}">{{ team.name }}</a>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -273,8 +278,16 @@
 
                         {% if user.is_authenticated %}
                         {% if is_registered %}
-                        <!-- Капитан видит кнопку "Отменить участие" -->
-                        {% if user.userprofile.team and user.userprofile.team.captain == user %}
+                        <!-- Для турниров 1x1 любой зарегистрированный пользователь может отменить участие -->
+                        {% if tournament.game_format == '1x1' %}
+                        <form action="{% url 'cancel_tournament_participation' tournament_id=tournament.id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-block">
+                                Отменить участие
+                            </button>
+                        </form>
+                        <!-- Для обычных турниров только капитан может отменить участие -->
+                        {% elif user.userprofile.team and user.userprofile.team.captain == user %}
                         <form action="{% url 'cancel_tournament_participation' tournament_id=tournament.id %}" method="post">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-danger btn-block">

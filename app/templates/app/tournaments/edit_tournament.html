@@ -67,6 +67,7 @@
         <div class="form-group">
             <button type="submit" class="btn btn-primary">Сохранить изменения</button>
             <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-secondary">Отмена</a>
+            <button type="button" class="btn btn-danger" onclick="confirmDeleteTournament()">Удалить турнир</button>
         </div>
     </form>
 
@@ -87,10 +88,17 @@
                 <tbody>
                     {% for team in tournament.registered_teams.all %}
                     <tr>
-                        <td>{{ team.name }}</td>
                         <td>
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    onclick="confirmRemoveTeam('{{ team.id }}', '{{ team.name }}')">
+                            {% if tournament.game_format == '1x1' %}
+                            {{ team.captain.username }}
+                            {% else %}
+                            {{ team.name }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm remove-team-btn"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{% if tournament.game_format == '1x1' %}{{ team.captain.username }}{% else %}{{ team.name }}{% endif %}">
                                 Удалить
                             </button>
                         </td>
@@ -106,6 +114,16 @@
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.remove-team-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const teamId = this.getAttribute('data-team-id');
+            const teamName = this.getAttribute('data-team-name');
+            confirmRemoveTeam(teamId, teamName);
+        });
+    });
+});
+
 function confirmRemoveTeam(teamId, teamName) {
     if (confirm(`Вы уверены, что хотите удалить команду "${teamName}" из турнира?`)) {
         fetch(`/tournaments/{{ tournament.id }}/remove_team/${teamId}/`, {
@@ -119,6 +137,29 @@ function confirmRemoveTeam(teamId, teamName) {
         .then(data => {
             if (data.success) {
                 location.reload();
+            } else {
+                alert(data.error || 'Произошла ошибка');
+            }
+        })
+        .catch(error => {
+            alert('Произошла ошибка: ' + error);
+        });
+    }
+}
+
+function confirmDeleteTournament() {
+    if (confirm('Вы уверены, что хотите удалить этот турнир? Это действие нельзя отменить.')) {
+        fetch(`/tournaments/{{ tournament.id }}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/tournaments/';
             } else {
                 alert(data.error || 'Произошла ошибка');
             }

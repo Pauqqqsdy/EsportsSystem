@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
 ]
 
 # https://docs.djangoproject.com/en/2.1/topics/http/middleware/
@@ -91,17 +92,8 @@ DEFAULT_FROM_EMAIL = 'zxc.tournament@mail.ru'
 SERVER_EMAIL = 'zxc.tournament@mail.ru'
 
 MEDIA_URL = '/media/'
-os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-PASSWORD_RESET_TEMPLATES = {
-    'password_reset_form': 'registration/password_reset_form.html',
-    'password_reset_done': 'registration/password_reset_done.html',
-    'password_reset_confirm': 'registration/password_reset_confirm.html',
-    'password_reset_complete': 'registration/password_reset_complete.html',
-    'password_reset_email': 'registration/password_reset_email.html',
-    'password_reset_subject': 'registration/password_reset_subject.txt',
-}
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'

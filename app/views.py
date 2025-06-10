@@ -10,11 +10,36 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from .models import Tournament, TournamentBracket, BracketStage, BracketMatch, TournamentRegistration, UserProfile, Team
 from .forms import BracketGenerationForm, BracketStageForm, MatchResultForm, TeamCreationForm, TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
-from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash, login
 from django.utils.crypto import get_random_string
 from django.db import transaction
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.contrib.auth.views import PasswordResetView
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'registration/password_reset_form.html'
+    email_template_name = 'registration/password_reset_email.txt'
+    subject_template_name = 'registration/password_reset_subject.txt'
+    success_url = '/password_reset/done/'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['site_name'] = 'ZXC.Tournament'
+        return context
+    
+    def form_valid(self, form):
+        opts = {
+            'use_https': self.request.is_secure(),
+            'token_generator': self.token_generator,
+            'from_email': getattr(self, 'from_email', None),
+            'email_template_name': self.email_template_name,
+            'subject_template_name': self.subject_template_name,
+            'request': self.request,
+            'html_email_template_name': None,
+        }
+        form.save(**opts)
+        return super().form_valid(form)
 
 def home(request):
     assert isinstance(request, HttpRequest)
@@ -41,10 +66,11 @@ def register(request):
             user.save()
             
             UserProfile.objects.create(user=user)
-            return render(request, 'app/auth/registration_success.html', {
-                'title': 'Регистрация успешна',
-                'year': datetime.now().year,
-            })
+            
+            login(request, user)
+            messages.success(request, f'Добро пожаловать, {user.username}! Регистрация прошла успешно.')
+            
+            return redirect('home')
     else:
         form = ExtendedUserCreationForm()
     
@@ -217,19 +243,15 @@ def leave_team(request):
     if user_profile.team:
         team = user_profile.team
         
-        if team.is_captain(request.user) and team.member_count() > 1:
-            messages.error(request, 'Вы не можете покинуть команду будучи капитаном. Сначала передайте лидерство или удалите команду.')
+        if team.is_captain(request.user):
+            messages.error(request, 'Вы не можете покинуть команду будучи капитаном. Для выхода из команды передайте лидерство другому участнику или удалите команду.')
             return redirect('team_page', team_id=team.id)
         
         team.members.remove(request.user)
         user_profile.team = None
         user_profile.save()
         
-        if team.member_count() == 0:
-            team.delete()
-            messages.success(request, 'Вы вышли из команды. Команда удалена, так как в ней не осталось участников.')
-        else:
-            messages.success(request, 'Вы вышли из команды')
+        messages.success(request, 'Вы вышли из команды')
             
     return redirect('profile')
 
@@ -275,7 +297,7 @@ def remove_member(request, team_id, member_id):
         return redirect('team_page', team_id=team.id)
     
     if member == request.user:
-        messages.error(request, 'Используйте "Покинуть команду" для выхода из команды')
+        messages.error(request, 'Вы не можете удалить себя из команды. Для выхода из команды передайте лидерство другому участнику или удалите команду.')
         return redirect('team_page', team_id=team.id)
     
     if not team.is_member(member):

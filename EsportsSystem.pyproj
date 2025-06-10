@@ -93,6 +93,7 @@
     <Content Include="app\templates\app\profile\profile.html" />
     <Content Include="app\templates\app\auth\register.html" />
     <Content Include="app\templates\registration\password_reset_confirm.html" />
+    <Content Include="app\templates\registration\password_reset_site.txt" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />
     <Content Include="app\static\app\content\bootstrap.css" />

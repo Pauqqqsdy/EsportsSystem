@@ -10,8 +10,15 @@ class CombinedPasswordValidator:
             NumericPasswordValidator(),
         ]
         
+        errors = []
         for validator in validators:
             try:
                 validator.validate(password, user)
-            except ValidationError:
-                raise ValidationError("Пароль слишком простой")
+            except ValidationError as e:
+                errors.extend(e.messages)
+        
+        if errors:
+            raise ValidationError(errors)
+    
+    def get_help_text(self):
+        return "Пароль должен содержать минимум 8 символов и не быть слишком простым."

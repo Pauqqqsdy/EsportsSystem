@@ -1,7 +1,7 @@
 ﻿from datetime import datetime
 import random
 from django.db.models import Q
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, HttpResponseRedirect
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
@@ -20,7 +20,8 @@ from django.contrib.auth.views import PasswordResetView, PasswordResetConfirmVie
 class CustomPasswordResetView(PasswordResetView):
     template_name = 'registration/password_reset_form.html'
     email_template_name = 'registration/password_reset_email.txt'
-    subject_template_name = 'registration/password_reset_subject.txt'
+    html_email_template_name = 'registration/password_reset_email.html'
+    subject_template_name = 'registration/password_reset_site.txt'
     success_url = '/password_reset/done/'
     
     def get_context_data(self, **kwargs):
@@ -29,21 +30,30 @@ class CustomPasswordResetView(PasswordResetView):
         return context
     
     def form_valid(self, form):
+        from django.conf import settings
+        from django.contrib.sites.models import Site
+        
+        if hasattr(settings, 'SITE_DOMAIN'):
+            current_site = Site.objects.get_current()
+            current_site.domain = settings.SITE_DOMAIN
+            current_site.name = getattr(settings, 'SITE_NAME', 'ZXC.Tournament')
+            current_site.save()
+        
         opts = {
-            'use_https': self.request.is_secure(),
+            'use_https': getattr(settings, 'SITE_PROTOCOL', 'https') == 'https',
             'token_generator': self.token_generator,
             'from_email': getattr(self, 'from_email', None),
             'email_template_name': self.email_template_name,
             'subject_template_name': self.subject_template_name,
             'request': self.request,
-            'html_email_template_name': None,
+            'html_email_template_name': self.html_email_template_name,
         }
         form.save(**opts)
         return super().form_valid(form)
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     template_name = 'registration/password_reset_confirm.html'
-    success_url = '/reset/done/'
+    success_url = '/'
     
     def form_valid(self, form):
         user = form.save()
@@ -52,7 +62,7 @@ class CustomPasswordResetConfirmView(PasswordResetConfirmView):
         
         messages.success(self.request, 'Пароль успешно изменён! Вы автоматически вошли в систему.')
         
-        return super().form_valid(form)
+        return HttpResponseRedirect(self.success_url)
 
 def home(request):
     assert isinstance(request, HttpRequest)

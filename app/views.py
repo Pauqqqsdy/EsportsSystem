@@ -608,10 +608,6 @@ def generate_bracket(request, tournament_id):
     
     teams_count = tournament.registered_teams.count()
     
-    if teams_count == 0:
-        messages.error(request, 'Нет зарегистрированных команд для формирования сетки')
-        return redirect(f'/tournaments/{tournament_id}/?tab=overview')
-    
     if teams_count < 2:
         messages.error(request, 'Формирование турнирной сетки доступно от двух участников и больше')
         return redirect(f'/tournaments/{tournament_id}/?tab=overview')

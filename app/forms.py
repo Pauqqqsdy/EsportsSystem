@@ -105,31 +105,9 @@ class ExtendedUserCreationForm(UserCreationForm):
         return username
 
 class AvatarUploadForm(forms.ModelForm):
-    email = forms.EmailField(required=True, label="Email")
-
     class Meta:
         model = UserProfile
         fields = ['avatar']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.user:
-            self.fields['email'].initial = self.instance.user.email
-
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        if User.objects.filter(email=email).exclude(pk=self.instance.user.pk).exists():
-            raise ValidationError("Пользователь с такой почтой уже зарегистрирован")
-        return email
-
-    def save(self, commit=True):
-        profile = super().save(commit=False)
-        if commit:
-            profile.save()
-            user = profile.user
-            user.email = self.cleaned_data['email']
-            user.save()
-        return profile
 
 class TeamCreationForm(forms.ModelForm):
     class Meta:
@@ -142,10 +120,8 @@ class TeamCreationForm(forms.ModelForm):
     
     def clean_name(self):
         name = self.cleaned_data['name']
-        # Получаем текущий экземпляр команды из формы
         current_team = self.instance
 
-        # Проверяем, существует ли команда с таким именем, исключая текущую (если редактируем)
         if Team.objects.filter(name__iexact=name).exclude(pk=current_team.pk).exists():
             raise forms.ValidationError("Команда с таким названием уже существует")
         return name
@@ -165,7 +141,6 @@ class TournamentForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-control'})
         
-        # Добавляем пустой выбор для формата турнира
         tournament_format_choices = [('', '--------')] + list(Tournament.TOURNAMENT_FORMAT_CHOICES)
         self.fields['tournament_format'].choices = tournament_format_choices
         

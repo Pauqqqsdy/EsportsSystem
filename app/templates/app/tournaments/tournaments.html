@@ -195,9 +195,9 @@
                     <label for="status" class="form-label">Статус турнира</label>
                     <select name="status" id="status" class="form-control">
                         <option value="">Все</option>
-                        <option value="upcoming" {% if selected_status and selected_status == 'upcoming' %}selected{% endif %}>Будущие</option>
-                        <option value="in_progress" {% if selected_status and selected_status == 'in_progress' %}selected{% endif %}>Текущие</option>
-                        <option value="completed" {% if selected_status and selected_status == 'completed' %}selected{% endif %}>Прошедшие</option>
+                        <option value="upcoming" {% if selected_status and selected_status == 'upcoming' %}selected{% endif %}>Запланированные</option>
+                        <option value="in_progress" {% if selected_status and selected_status == 'in_progress' %}selected{% endif %}>В процессе</option>
+                        <option value="completed" {% if selected_status and selected_status == 'completed' %}selected{% endif %}>Завершённые</option>
                     </select>
                 </div>
 
@@ -268,9 +268,9 @@
                                 <!-- Статус турнира -->
                                 <div class="d-flex align-items-center my-2">
                                     {% if t.start_date > timezone.now %}
-                                    <span class="status-badge status-upcoming">Будущий</span>
+                                    <span class="status-badge status-upcoming">Запланирован</span>
                                     {% else %}
-                                    <span class="status-badge status-in-progress">Активный</span>
+                                    <span class="status-badge status-in-progress">В процессе</span>
                                     {% endif %}
                                 </div>
 

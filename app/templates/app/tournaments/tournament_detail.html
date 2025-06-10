@@ -136,6 +136,7 @@
             color: #e6e6e6;
             text-decoration: none;
         }
+
     .tournament-game-icon {
         width: 50px;
         height: 50px;
@@ -162,20 +163,6 @@
 </style>
 
 <div class="container">
-    <!-- Отображение сообщений -->
-    {% if messages %}
-    <div class="row">
-        <div class="col-12">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
     <div class="row">
         <!-- Левая колонка -->
         <div class="col-md-8">
@@ -318,7 +305,6 @@
                                 </button>
                             </div>
                         </form>
-                        <!-- Для обычных турниров только капитан может отменить участие -->
                         {% elif user.userprofile.team and user.userprofile.team.captain == user %}
                         <form action="{% url 'cancel_tournament_participation' tournament_id=tournament.id %}" method="post">
                             {% csrf_token %}

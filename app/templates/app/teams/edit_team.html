@@ -1,22 +1,43 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<h2>Редактирование команды</h2>
-<div class="row">
-    <div class="col-md-6">
-        <div class="mb-3">
-            <h4>Текущий аватар:</h4>
-            <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}/media/team_avatars/default.jpg{% endif %}"
-                 alt="Аватар команды"
-                 width="150"
-                 class="img-thumbnail">
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-users-cog me-2 text-primary"></i>
+                        Редактирование команды
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-image me-1"></i>Текущий аватар команды:
+                        </h5>
+                        <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}/media/team_avatars/default.jpg{% endif %}"
+                             alt="Аватар команды"
+                             class="img-fluid rounded shadow"
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'team_page' team_id=team.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Сохранить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Сохранить</button>
-            <a href="{% url 'team_page' team_id=team.id %}" class="btn btn-outline-secondary">Отмена</a>
-        </form>
     </div>
 </div>
 {% endblock %}

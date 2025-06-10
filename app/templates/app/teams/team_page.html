@@ -148,26 +148,31 @@
                 <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}{% static 'app/images/default-team.png' %}{% endif %}"
                      alt="{{ team.name }}"
                      style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;">
-                <h1 class="mb-0 ml-3">{{ team.name }}</h1>
+                <h1 class="mb-0 ms-3">{{ team.name }}</h1>
             </div>
 
-            <!-- Вкладки -->
             <ul class="nav nav-tabs">
                 <li class="nav-item">
-                    <a class="nav-link" href="#overview" data-toggle="tab">Обзор</a>
+                    <a class="nav-link active" href="#overview" data-bs-toggle="tab">
+                        <i class="fas fa-info-circle me-1"></i>Обзор
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#matches" data-toggle="tab">Матчи</a>
+                    <a class="nav-link" href="#matches" data-bs-toggle="tab">
+                        <i class="fas fa-trophy me-1"></i>Матчи
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#statistics" data-toggle="tab">Статистика</a>
+                    <a class="nav-link" href="#statistics" data-bs-toggle="tab">
+                        <i class="fas fa-chart-bar me-1"></i>Статистика
+                    </a>
                 </li>
             </ul>
 
             <!-- Тело вкладок -->
             <div class="tab-content mt-3">
-                <!-- Вкладка "Обзор" -->
-                <div id="overview" class="tab-pane fade">
+                <!-- Вкладка Обзор -->
+                <div id="overview" class="tab-pane fade show active">
                     <div class="info-block">
                         <h5>Участники ({{ team.member_count }}/8)</h5>
 
@@ -207,19 +212,19 @@
                     </div>
                 </div>
 
-                <!-- Вкладка "Матчи" -->
+                <!-- Вкладка Матчи -->
                 <div id="matches" class="tab-pane fade">
                     <h5>Матчи</h5>
                     <p>Данные о матчах будут доступны позже.</p>
                 </div>
 
-                <!-- Вкладка "Статистика" -->
+                <!-- Вкладка Статистика -->
                 <div id="statistics" class="tab-pane fade">
                     <h5>Статистика</h5>
                     <p>Данные о статистике будут доступны позже.</p>
                 </div>
             </div>
-            </div>
+        </div>
 
         <!-- Правая колонка -->
         <div class="col-md-4">
@@ -259,16 +264,18 @@
             </div>
             {% endif %}
 
-            <!-- Блок "Участие" -->
+            <!-- Блок Участие -->
             <div class="card mt-4 mb-4">
                 <div class="card-body">
                     {% if user.is_authenticated %}
                     {% if is_member %}
                     <form action="{% url 'leave_team' %}" method="post">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-danger btn-block">
-                            Покинуть команду
-                        </button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-sign-out-alt me-1"></i>Покинуть команду
+                            </button>
+                        </div>
                     </form>
                     {% endif %}
                     {% else %}

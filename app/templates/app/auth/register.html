@@ -1,106 +1,144 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<h2>Регистрация</h2>
-<div class="row">
-    <div class="col-md-8">
-        <form method="post" novalidate>
-            {% csrf_token %}
-            <h4>Создать новый аккаунт</h4>
-            <hr />
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">
+                        <i class="fas fa-user-plus me-2 text-primary"></i>Регистрация
+                    </h2>
 
-            {% if form.errors %}
-            <div class="alert alert-danger">
-                {% for field, errors in form.errors.items %}
-                {% for error in errors %}
-                <p>{{ error }}</p>
-                {% endfor %}
-                {% endfor %}
-            </div>
-            {% endif %}
+                    <form method="post" novalidate>
+                        {% csrf_token %}
 
-            <div class="form-group">
-                <label for="id_username">Логин:</label>
-                {{ form.username }}
-                {% if form.username.errors %}
-                <div class="invalid-feedback d-block">
-                    {% for error in form.username.errors %}
-                    {{ error }}
-                    {% endfor %}
+                        {% if form.errors %}
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Исправьте ошибки:</strong>
+                            {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="fas fa-user me-1"></i>Логин
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.username.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Максимум 16 символов. Только латинские буквы и цифры.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.email.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="fas fa-bell me-1"></i>
+                                На этот адрес будут приходить уведомления
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_password1" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Пароль
+                            </label>
+                            {{ form.password1 }}
+                            {% if form.password1.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.password1.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                Пароль должен содержать минимум 8 символов и не быть слишком простым.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_password2" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Подтверждение пароля
+                            </label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.password2.errors %}
+                                {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.privacy_policy }}
+                                <label class="form-check-label" for="id_privacy_policy">
+                                    Я согласен с
+                                    <a href="{% url 'privacy_policy' %}" target="_blank" class="text-decoration-none">
+                                        политикой конфиденциальности
+                                    </a>
+                                    и
+                                    <a href="{% url 'service_terms' %}" target="_blank" class="text-decoration-none">
+                                        пользовательским соглашением
+                                    </a>
+                                </label>
+                                {% if form.privacy_policy.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.privacy_policy.errors %}
+                                    {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-1"></i>Зарегистрироваться
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center">
+                        <p class="mb-0">
+                            Уже есть аккаунт?
+                            <a href="{% url 'login' %}" class="text-decoration-none">
+                                <i class="fas fa-sign-in-alt me-1"></i>Войти
+                            </a>
+                        </p>
+                    </div>
                 </div>
-                {% endif %}
-                <small class="form-text text-muted">
-                    Максимум 16 символов. Только латинские буквы и цифры.
-                </small>
             </div>
-
-            <div class="form-group">
-                <label for="id_email">Email:</label>
-                {{ form.email }}
-                {% if form.email.errors %}
-                <div class="invalid-feedback d-block">
-                    {% for error in form.email.errors %}
-                    {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <small class="form-text text-muted">На этот адрес будут приходить уведомления</small>
-            </div>
-
-            <div class="form-group">
-                <label for="id_password1">Пароль:</label>
-                {{ form.password1 }}
-                {% if form.password1.errors %}
-                <div class="invalid-feedback d-block">
-                    {% for error in form.password1.errors %}
-                    {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <small class="form-text text-muted">
-                    Пароль должен содержать минимум 8 символов и не быть слишком простым.
-                </small>
-            </div>
-
-            <div class="form-group">
-                <label for="id_password2">Подтверждение пароля:</label>
-                {{ form.password2 }}
-                {% if form.password2.errors %}
-                <div class="invalid-feedback d-block">
-                    {% for error in form.password2.errors %}
-                    {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="form-group form-check">
-                {{ form.privacy_policy }}
-                <label class="form-check-label" for="id_privacy_policy">
-                    Я согласен с <a href="{% url 'privacy_policy' %}" target="_blank">политикой конфиденциальности</a>
-                    и <a href="{% url 'service_terms' %}" target="_blank">пользовательским соглашением</a>
-                </label>
-                {% if form.privacy_policy.errors %}
-                <div class="invalid-feedback d-block">
-                    {% for error in form.privacy_policy.errors %}
-                    {{ error }}
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
-        </form>
-
-        <div class="mt-3">
-            Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
         </div>
     </div>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Валидация логина (только латинские буквы и цифры)
         const usernameField = document.getElementById('id_username');
         if (usernameField) {
             usernameField.addEventListener('input', function () {
@@ -111,13 +149,11 @@
             });
         }
 
-        // Кастомная валидация формы при отправке
         const form = document.querySelector('form');
         if (form) {
             form.addEventListener('submit', function (e) {
                 let isValid = true;
 
-                // Проверка всех обязательных полей
                 const requiredFields = form.querySelectorAll('[required]');
                 requiredFields.forEach(field => {
                     field.classList.remove('is-invalid');
@@ -131,11 +167,9 @@
                         isValid = false;
                         field.classList.add('is-invalid');
 
-                        // Создаем сообщение об ошибке
                         const errorDiv = document.createElement('div');
                         errorDiv.className = 'invalid-feedback';
 
-                        // Устанавливаем кастомное сообщение в зависимости от поля
                         const fieldMessages = {
                             'id_username': 'Логин обязателен для заполнения',
                             'id_email': 'Email обязателен для заполнения',

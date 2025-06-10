@@ -1,31 +1,72 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<h2>Редактирование профиля</h2>
-<div class="row">
-    <div class="col-md-6">
-        <div class="mb-3">
-            <h4>Текущий аватар:</h4>
-            <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}/media/avatars/default.jpg{% endif %}"
-                 alt="Аватар"
-                 width="150"
-                 class="img-thumbnail">
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit me-2 text-primary"></i>
+                        Редактирование профиля
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-image me-1"></i>Текущий аватар:
+                        </h5>
+                        <img src="{% if profile.avatar %}{{ profile.avatar.url }}{% else %}/media/avatars/default.jpg{% endif %}"
+                             alt="Аватар"
+                             class="img-fluid rounded-circle shadow"
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_email" class="form-label">
+                                <i class="fas fa-envelope me-1"></i>Email
+                            </label>
+                            <input type="email" name="email" value="{{ form.email.value }}"
+                                   class="form-control" required id="id_email">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Введите действительный email
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="id_avatar" class="form-label">
+                                <i class="fas fa-upload me-1"></i>Новый аватар
+                            </label>
+                            <input type="file" name="avatar" class="form-control" id="id_avatar" accept="image/*">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Выберите изображение для загрузки (JPG, PNG)
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap justify-content-between">
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Сохранить
+                                </button>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'change_password' %}" class="btn btn-outline-warning">
+                                    <i class="fas fa-key me-1"></i>Сменить пароль
+                                </a>
+                                <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Отмена
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="id_email">Email</label>
-                <input type="email" name="email" value="{{ form.email.value }}" class="form-control" required id="id_email">
-                <small class="form-text text-muted">Введите действительный email</small>
-            </div>
-            <div class="form-group">
-                <label for="id_avatar">Аватар</label>
-                <input type="file" name="avatar" class="form-control-file" id="id_avatar">
-            </div>
-            <button type="submit" class="btn btn-primary">Сохранить</button>
-            <a href="{% url 'change_password' %}" class="btn btn-secondary">Сменить пароль</a>
-            <a href="{% url 'profile' %}" class="btn btn-outline-secondary">Отмена</a>
-        </form>
     </div>
 </div>
 {% endblock %}

@@ -1,65 +1,96 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Турнирная сетка "{{ tournament.name }}"</h1>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-sitemap fa-2x text-primary me-3"></i>
+            <h1 class="mb-0">Турнирная сетка "{{ tournament.name }}"</h1>
+        </div>
         {% if is_creator and not bracket %}
         <a href="{% url 'generate_bracket' tournament_id=tournament.id %}" class="btn btn-primary">
-            Сформировать сетку
+            <i class="fas fa-plus me-1"></i>Сформировать сетку
         </a>
         {% endif %}
     </div>
 
     {% if bracket %}
     {% for stage in bracket.stages.all %}
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">{{ stage.name }}</h5>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fas fa-layer-group me-2 text-primary"></i>
+                {{ stage.name }}
+            </h5>
             {% if is_creator and not stage.is_completed %}
             <a href="{% url 'edit_stage_format' tournament_id=tournament.id stage_id=stage.id %}"
                class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-cog me-1"></i>
                 Изменить формат ({{ stage.get_format_display }})
             </a>
             {% else %}
-            <span class="badge bg-secondary">{{ stage.get_format_display }}</span>
+            <span class="badge bg-secondary fs-6">
+                <i class="fas fa-info-circle me-1"></i>
+                {{ stage.get_format_display }}
+            </span>
             {% endif %}
         </div>
         <div class="card-body">
             <div class="row">
                 {% for match in stage.matches.all %}
-                <div class="col-md-6 mb-3">
-                    <div class="card {% if match.is_completed %}border-success{% endif %}">
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100 {% if match.is_completed %}border-success{% endif %} shadow-sm">
                         <div class="card-body">
-                            <div class="match-info d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted">Матч {{ match.order }}</span>
+                            <div class="match-info d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted">
+                                    <i class="fas fa-gamepad me-1"></i>
+                                    Матч {{ match.order }}
+                                </span>
                                 {% if match.is_completed %}
-                                <span class="badge bg-success">Завершен</span>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>Завершен
+                                </span>
                                 {% else %}
-                                <span class="badge bg-warning text-dark">Ожидается</span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>Ожидается
+                                </span>
                                 {% endif %}
                             </div>
 
                             <div class="match-teams">
                                 <div class="team {% if match.winner == match.team1 %}winner{% endif %}">
+                                    <i class="fas fa-user me-1"></i>
                                     {{ match.team1.name|default:"-" }}
+                                    {% if match.winner == match.team1 %}
+                                    <i class="fas fa-crown ms-1 text-warning"></i>
+                                    {% endif %}
                                 </div>
-                                <div class="vs">vs</div>
+                                <div class="vs">
+                                    <i class="fas fa-versus"></i>
+                                </div>
                                 <div class="team {% if match.winner == match.team2 %}winner{% endif %}">
+                                    <i class="fas fa-user me-1"></i>
                                     {{ match.team2.name|default:"-" }}
+                                    {% if match.winner == match.team2 %}
+                                    <i class="fas fa-crown ms-1 text-warning"></i>
+                                    {% endif %}
                                 </div>
                             </div>
 
                             {% if match.is_completed %}
-                            <div class="winner mt-2 text-center">
-                                <strong>Победитель: {{ match.winner.name }}</strong>
+                            <div class="winner mt-3 text-center">
+                                <div class="alert alert-success py-2">
+                                    <i class="fas fa-trophy me-1"></i>
+                                    <strong>Победитель: {{ match.winner.name }}</strong>
+                                </div>
                             </div>
                             {% endif %}
 
                             {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
-                            <div class="mt-3 text-center">
+                            <div class="mt-3 d-grid">
                                 <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}"
                                    class="btn btn-sm btn-primary">
+                                    <i class="fas fa-crown me-1"></i>
                                     Указать победителя
                                 </a>
                             </div>
@@ -73,11 +104,16 @@
     </div>
     {% endfor %}
     {% else %}
-    <div class="alert alert-info">
-        Турнирная сетка еще не сформирована.
-        {% if is_creator %}
-        Для формирования сетки нажмите кнопку "Сформировать сетку".
-        {% endif %}
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="fas fa-info-circle fa-2x me-3"></i>
+        <div>
+            <h5 class="alert-heading">Турнирная сетка не сформирована</h5>
+            {% if is_creator %}
+            <p class="mb-0">Для формирования сетки нажмите кнопку "Сформировать сетку".</p>
+            {% else %}
+            <p class="mb-0">Ожидайте, пока организатор сформирует турнирную сетку.</p>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </div>
@@ -88,29 +124,50 @@
         justify-content: space-between;
         align-items: center;
         margin: 15px 0;
+        gap: 10px;
     }
 
     .team {
         flex: 1;
-        padding: 10px;
+        padding: 12px;
         text-align: center;
-        border-radius: 5px;
+        border-radius: 8px;
         background-color: #f8f9fa;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
     }
 
         .team.winner {
             background-color: #d4edda;
+            border-color: #28a745;
             font-weight: bold;
+            transform: scale(1.02);
         }
 
     .vs {
         padding: 0 15px;
         font-weight: bold;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .winner {
         color: #28a745;
         font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+        .match-teams {
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .vs {
+            transform: rotate(90deg);
+            padding: 5px 0;
+        }
     }
 </style>
 {% endblock %}

@@ -1,75 +1,130 @@
 {% extends "app/layout.html" %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">Мои турниры</h1>
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex align-items-center mb-4">
+                <i class="fas fa-trophy fa-2x text-primary me-3"></i>
+                <h1 class="mb-0">Мои турниры</h1>
+            </div>
 
-    <ul class="nav nav-tabs mb-4" id="myTournamentsTab" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="participating-tab" data-toggle="tab" href="#participating" role="tab">
-                Турниры с моим участием
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="created-tab" data-toggle="tab" href="#created" role="tab">
-                Созданные мной турниры
-            </a>
-        </li>
-    </ul>
+            <ul class="nav nav-tabs mb-4" id="myTournamentsTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="participating-tab" data-bs-toggle="tab" data-bs-target="#participating" type="button" role="tab" aria-controls="participating" aria-selected="true">
+                        <i class="fas fa-users me-2"></i>
+                        Турниры с моим участием
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="created-tab" data-bs-toggle="tab" data-bs-target="#created" type="button" role="tab" aria-controls="created" aria-selected="false">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Созданные мной турниры
+                    </button>
+                </li>
+            </ul>
 
-    <div class="tab-content" id="myTournamentsTabContent">
-        <div class="tab-pane fade show active" id="participating" role="tabpanel">
-            {% if participating_tournaments %}
-            <div class="row">
-                {% for tournament in participating_tournaments %}
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ tournament.name }}</h5>
-                            <p class="card-text">{{ tournament.discipline }} • {{ tournament.get_game_format_display }}</p>
-                            <p class="text-muted">
-                                <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small>
-                            </p>
-                            <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary">
-                                Подробнее
-                            </a>
+            <div class="tab-content" id="myTournamentsTabContent">
+                <div class="tab-pane fade show active" id="participating" role="tabpanel" aria-labelledby="participating-tab">
+                    {% if participating_tournaments %}
+                    <div class="row">
+                        {% for tournament in participating_tournaments %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start justify-content-between mb-3">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-gamepad me-2 text-primary"></i>
+                                            {{ tournament.name }}
+                                        </h5>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Участвую
+                                        </span>
+                                    </div>
+                                    <p class="card-text text-muted mb-2">
+                                        <i class="fas fa-tag me-1"></i>
+                                        {{ tournament.discipline }} • {{ tournament.get_game_format_display }}
+                                    </p>
+                                    <p class="card-text text-muted mb-3">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small>
+                                    </p>
+                                    <div class="d-grid">
+                                        <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Подробнее
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            Вы не участвуете ни в одном активном турнире.
+                            <a href="{% url 'tournaments' %}" class="alert-link">Найти турниры</a>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="alert alert-info">Вы не участвуете ни в одном активном турнире</div>
-            {% endif %}
-        </div>
 
-        <div class="tab-pane fade" id="created" role="tabpanel">
-            {% if created_tournaments %}
-            <div class="row">
-                {% for tournament in created_tournaments %}
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ tournament.name }}</h5>
-                            <p class="card-text">{{ tournament.discipline }} • {{ tournament.get_game_format_display }}</p>
-                            <p class="text-muted">
-                                <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small><br>
-                                <small>Участников: {{ tournament.registered_teams_count }}/{{ tournament.max_teams }}</small>
-                            </p>
-                            <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary">
-                                Подробнее
-                            </a>
-                            <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-outline-secondary">
-                                Редактировать
-                            </a>
+                <div class="tab-pane fade" id="created" role="tabpanel" aria-labelledby="created-tab">
+                    {% if created_tournaments %}
+                    <div class="row">
+                        {% for tournament in created_tournaments %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start justify-content-between mb-3">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-crown me-2 text-warning"></i>
+                                            {{ tournament.name }}
+                                        </h5>
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user-shield me-1"></i>Организатор
+                                        </span>
+                                    </div>
+                                    <p class="card-text text-muted mb-2">
+                                        <i class="fas fa-tag me-1"></i>
+                                        {{ tournament.discipline }} • {{ tournament.get_game_format_display }}
+                                    </p>
+                                    <p class="card-text text-muted mb-2">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        <small>Начало: {{ tournament.start_date|date:"d.m.Y H:i" }}</small>
+                                    </p>
+                                    <p class="card-text text-muted mb-3">
+                                        <i class="fas fa-users me-1"></i>
+                                        <small>Участников: {{ tournament.registered_teams_count }}/{{ tournament.max_teams }}</small>
+                                    </p>
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-primary flex-fill">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Подробнее
+                                        </a>
+                                        <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-outline-secondary flex-fill">
+                                            <i class="fas fa-edit me-1"></i>
+                                            Редактировать
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            Вы не создали ни одного турнира.
+                            <a href="{% url 'create_tournament' %}" class="alert-link">Создать турнир</a>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="alert alert-info">Вы не создали ни одного турнира</div>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -77,15 +132,22 @@
 
 {% block scripts %}
 <script>
-$(document).ready(function(){
-    var hash = window.location.hash;
-    if (hash) {
-        $('.nav-tabs a[href="' + hash + '"]').tab('show');
-    }
+    document.addEventListener('DOMContentLoaded', function () {
+        const hash = window.location.hash;
+        if (hash) {
+            const tabTrigger = document.querySelector(`[data-bs-target="${hash}"]`);
+            if (tabTrigger) {
+                const tab = new bootstrap.Tab(tabTrigger);
+                tab.show();
+            }
+        }
 
-    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-        window.location.hash = e.target.hash;
+        const tabTriggers = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabTriggers.forEach(trigger => {
+            trigger.addEventListener('shown.bs.tab', function (event) {
+                window.location.hash = event.target.getAttribute('data-bs-target');
+            });
+        });
     });
-});
 </script>
 {% endblock %}

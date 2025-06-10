@@ -332,7 +332,8 @@ def tournaments(request):
         'selected_region': region,
         'selected_discipline': discipline,
         'selected_game_format': game_format,
-        'selected_status': status, 
+        'selected_status': status,
+        'timezone': timezone,
         'title': 'Турниры',
     }
     return render(request, 'app/tournaments/tournaments.html', context)
@@ -364,13 +365,11 @@ def tournament_detail(request, tournament_id):
     is_registered = False
     
     if request.user.is_authenticated and hasattr(request.user, 'userprofile'):
-        # Для турниров 1x1 проверяем регистрацию по капитану или участнику
         if tournament.game_format == '1x1':
             is_registered = tournament.registered_teams.filter(
                 Q(captain=request.user) | Q(members=request.user)
             ).exists()
         else:
-            # Для обычных турниров проверяем через команду пользователя
             user_team = request.user.userprofile.team
             if user_team:
                 is_registered = tournament.is_registered(user_team)
@@ -415,9 +414,7 @@ def participate_tournament(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user_profile = request.user.userprofile
     
-    # Проверяем, есть ли уже регистрация пользователя в турнире 1x1
     if tournament.game_format == '1x1':
-        # Проверяем, зарегистрирован ли пользователь через какую-либо команду
         existing_registration = tournament.registered_teams.filter(
             Q(captain=request.user) | Q(members=request.user)
         ).first()
@@ -430,9 +427,8 @@ def participate_tournament(request, tournament_id):
             messages.error(request, 'Турнир уже заполнен')
             return redirect('tournament_detail', tournament_id=tournament.id)
         
-        # Создаем команду только для участия в турнире, не привязывая к профилю
         team = Team.objects.create(
-            name=request.user.username,  # Используем имя пользователя, а не _temp
+            name=request.user.username,
             captain=request.user
         )
         
@@ -440,7 +436,6 @@ def participate_tournament(request, tournament_id):
         messages.success(request, 'Вы успешно зарегистрированы на турнир!')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
-    # Для турниров не 1x1 требуется команда
     if not user_profile.team:
         messages.error(request, 'Для участия в этом турнире вам нужно состоять в команде')
         return redirect('tournament_detail', tournament_id=tournament.id)
@@ -508,7 +503,6 @@ def remove_team_from_tournament(request, tournament_id, team_id):
     
     tournament.registered_teams.remove(team)
     
-    # Удаляем команду, если она была создана для турнира 1x1 и не привязана к профилю
     if tournament.game_format == '1x1' and (not hasattr(team.captain, 'userprofile') or team.captain.userprofile.team != team):
         team.delete()
     
@@ -522,7 +516,6 @@ def delete_tournament(request, tournament_id):
     if not tournament.is_creator(request.user):
         return JsonResponse({'success': False, 'error': 'Только создатель может удалить турнир'}, status=403)
     
-    # Удаляем временные команды, созданные для турниров 1x1
     if tournament.game_format == '1x1':
         for team in tournament.registered_teams.all():
             if not hasattr(team.captain, 'userprofile') or team.captain.userprofile.team != team:
@@ -749,32 +742,26 @@ def cancel_tournament_participation(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user_profile = request.user.userprofile
 
-    # Для турниров 1x1 ищем команду пользователя среди зарегистрированных
     if tournament.game_format == '1x1':
         user_team = tournament.registered_teams.filter(captain=request.user).first()
         if not user_team:
             messages.warning(request, 'Вы не зарегистрированы на этот турнир')
             return redirect('tournament_detail', tournament_id=tournament.id)
         
-        # Убираем команду из турнира
         tournament.registered_teams.remove(user_team)
         
-        # Удаляем временную команду, если она не привязана к профилю
         if not hasattr(user_team.captain, 'userprofile') or user_team.captain.userprofile.team != user_team:
             user_team.delete()
         
         messages.success(request, 'Вы успешно отменили участие в турнире')
         return redirect('tournament_detail', tournament_id=tournament.id)
 
-    # Для обычных турниров требуется команда
     team = user_profile.team
 
-    # Проверяем, состоит ли пользователь в команде и является ли он капитаном
     if not team or not team.is_captain(request.user):
         messages.error(request, 'Только капитан может отменить регистрацию команды')
         return redirect('team_page', team_id=team.id if team else 0)
 
-    # Убираем команду из турнира
     try:
         registration = TournamentRegistration.objects.get(tournament=tournament, team=team)
         registration.delete()

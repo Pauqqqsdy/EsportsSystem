@@ -1,38 +1,19 @@
-﻿"""
-Django settings for EsportsSystem project.
-
-Based on 'django-admin startproject' using Django 2.1.2.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/2.1/topics/settings/
-
-For the full list of settings and their values, see
-https://docs.djangoproject.com/en/2.1/ref/settings/
-"""
-
-import os
+﻿import os
 import posixpath
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '271116aa-008b-4294-857a-ea200fb54f7b'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
 INSTALLED_APPS = [
     'app',
-    # Add your apps here to enable them
-    # 'django.contrib.admin', 
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -40,7 +21,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 
-# Middleware framework
 # https://docs.djangoproject.com/en/2.1/topics/http/middleware/
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -54,7 +34,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'EsportsSystem.urls'
 
-# Template configuration
 # https://docs.djangoproject.com/en/2.1/topics/templates/
 TEMPLATES = [
     {
@@ -73,7 +52,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'EsportsSystem.wsgi.application'
-# Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 DATABASES = {
     'default': {
@@ -82,24 +60,13 @@ DATABASES = {
     }
 }
 
-# Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'app.validators.CombinedPasswordValidator',
     },
 ]
 
-# Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 LANGUAGE_CODE = 'ru-RU'
 TIME_ZONE = 'Europe/Moscow'
@@ -109,7 +76,6 @@ USE_TZ = True
 
 ADMIN_URL = 'secret-admin/'
 
-# Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
@@ -119,12 +85,11 @@ EMAIL_HOST = 'smtp.mail.ru'
 EMAIL_PORT = 465  # Для SSL
 EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False  # Не используем одновременно SSL и TLS
-EMAIL_HOST_USER = 'zxc.tournament@mail.ru'  # Полный email
-EMAIL_HOST_PASSWORD = 'BNiDKDuP28tAHBjGwria'  # Пароль от почты или пароль приложения
-DEFAULT_FROM_EMAIL = 'zxc.tournament@mail.ru'  # Должен совпадать с EMAIL_HOST_USER
-SERVER_EMAIL = 'zxc.tournament@mail.ru'  # Для отправки системных сообщений
+EMAIL_HOST_USER = 'zxc.tournament@mail.ru'
+EMAIL_HOST_PASSWORD = 'BNiDKDuP28tAHBjGwria'
+DEFAULT_FROM_EMAIL = 'zxc.tournament@mail.ru'
+SERVER_EMAIL = 'zxc.tournament@mail.ru'
 
-# Настройки для медиафайлов (аватарок)
 MEDIA_URL = '/media/'
 os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

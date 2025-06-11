@@ -645,6 +645,7 @@ def generate_bracket(request, tournament_id):
     
     if request.method == 'POST':
         form = BracketGenerationForm(request.POST, tournament=tournament)
+        
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -653,6 +654,7 @@ def generate_bracket(request, tournament_id):
                     
                     # Если выбрано ручное распределение, перенаправляем на страницу распределения
                     if generation_type == 'manual':
+                        messages.info(request, 'Перенаправление на ручную настройку сетки')
                         return redirect('manual_bracket_setup', tournament_id=tournament.id)
                     
                     # Собираем форматы для этапов
@@ -664,17 +666,19 @@ def generate_bracket(request, tournament_id):
                     # Создаем сетку в зависимости от формата турнира
                     if tournament.tournament_format == 'single_elimination':
                         third_place_match = form.cleaned_data.get('third_place_match', False)
-                        create_single_elimination_bracket(
+                        bracket = create_single_elimination_bracket(
                             tournament, teams, generation_type, 
                             third_place_match, stage_formats
                         )
+                        
                     elif tournament.tournament_format == 'double_elimination':
-                        create_double_elimination_bracket(
+                        bracket = create_double_elimination_bracket(
                             tournament, teams, generation_type, stage_formats
                         )
+                        
                     elif tournament.tournament_format == 'round_robin':
                         default_format = form.cleaned_data.get('default_format', 'BO3')
-                        create_round_robin_bracket(tournament, teams, default_format)
+                        table = create_round_robin_bracket(tournament, teams, default_format)
                     
                     messages.success(request, f'Турнирная сетка успешно создана! Формат: {tournament.tournament_format}, Команд: {len(teams)}')
                     
@@ -685,8 +689,20 @@ def generate_bracket(request, tournament_id):
                         return redirect('tournament_bracket', tournament_id=tournament.id)
             
             except Exception as e:
+                import traceback
+                # Логируем подробную ошибку для разработчика
+                print(f"ERROR: Exception in bracket generation: {str(e)}")
+                print(f"ERROR: Traceback: {traceback.format_exc()}")
+                
+                # Показываем пользователю понятное сообщение
                 messages.error(request, f'Ошибка при создании сетки: {str(e)}')
                 return redirect('tournament_detail', tournament_id=tournament.id)
+        else:
+            # Форма не прошла валидацию - показываем ошибки
+            messages.error(request, 'Проверьте правильность заполнения формы')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'Ошибка в поле "{form.fields[field].label}": {error}')
     else:
         form = BracketGenerationForm(tournament=tournament)
     
@@ -800,30 +816,7 @@ def update_match_result(request, tournament_id, match_id):
         'match': match
     })
 
-def promote_winner_to_next_stage(match):
-    if not match.winner:
-        return
-    
-    next_stage = BracketStage.objects.filter(
-        bracket=match.stage.bracket,
-        order=match.stage.order + 1
-    ).first()
-    
-    if not next_stage:
-        return
-    
-    match_position = (match.order + 1) // 2
-    next_match = BracketMatch.objects.filter(
-        stage=next_stage,
-        order=match_position
-    ).first()
-    
-    if next_match:
-        if match.order % 2 == 1:
-            next_match.team1 = match.winner
-        else:
-            next_match.team2 = match.winner
-        next_match.save()
+# promote_winner_to_next_stage function moved to bracket_features.py
 
 @login_required
 def complete_stage(request, tournament_id, stage_id):

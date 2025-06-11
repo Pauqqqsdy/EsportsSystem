@@ -34,6 +34,8 @@
 
                     <form method="post">
                         {% csrf_token %}
+
+                        <!-- Способ формирования сетки -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-random me-1 text-primary"></i>
@@ -43,6 +45,62 @@
                                 {{ form.generation_type }}
                             </div>
                         </div>
+
+                        <!-- Матч за третье место (для Single Elimination) -->
+                        {% if form.third_place_match %}
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.third_place_match }}
+                                <label class="form-check-label" for="{{ form.third_place_match.id_for_label }}">
+                                    <i class="fas fa-medal me-1 text-warning"></i>
+                                    {{ form.third_place_match.label }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Формат для Round Robin -->
+                        {% if form.default_format %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold" for="{{ form.default_format.id_for_label }}">
+                                <i class="fas fa-gamepad me-1 text-success"></i>
+                                {{ form.default_format.label }}:
+                            </label>
+                            {{ form.default_format }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Форматы для каждого этапа -->
+                        {% for field in form %}
+                        {% if field.name|slice:":12" == "format_round" %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="{{ field.id_for_label }}">
+                                <i class="fas fa-trophy me-1 text-warning"></i>
+                                {{ field.label }}:
+                            </label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="text-danger">
+                                {% for error in field.errors %}
+                                <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+
+                        <!-- Все ошибки формы -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
 
                         <div class="d-flex justify-content-between gap-2">
                             <a href="{% url 'tournament_detail' tournament_id=tournament.id %}" class="btn btn-outline-secondary">

@@ -6,6 +6,7 @@ from django.contrib.admin import widgets
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
+import math
 
 class BootstrapAuthenticationForm(AuthenticationForm):
     username = forms.CharField(max_length=16,
@@ -269,22 +270,81 @@ class BracketGenerationForm(forms.Form):
                 # Для других форматов добавляем форматы для каждого этапа динамически
                 team_count = tournament.registered_teams.count()
                 if team_count >= 2:
-                    current_round = team_count
-                    round_number = 1
+                    # Используем тот же алгоритм, что и в bracket_features.py
+                    if tournament.tournament_format == 'single_elimination':
+                        # Для Single Elimination используем улучшенный алгоритм
+                        total_rounds = max(1, math.ceil(math.log2(team_count))) if team_count > 1 else 1
+                        
+                        teams_in_round = team_count
+                        for round_number in range(1, total_rounds + 1):
+                            matches_in_round = math.ceil(teams_in_round / 2) if teams_in_round > 1 else 0
+                            
+                            if matches_in_round == 0:
+                                continue
+                            
+                            # Определяем название этапа
+                            if round_number == total_rounds:
+                                stage_name = "Финал"
+                            elif round_number == total_rounds - 1 and total_rounds > 1:
+                                stage_name = "Полуфиналы" if matches_in_round > 1 else "Полуфинал"
+                            else:
+                                stage_name = self.get_stage_name_by_round(round_number, total_rounds, matches_in_round)
+                            
+                            field_name = f'format_round_{round_number}'
+                            self.fields[field_name] = forms.ChoiceField(
+                                choices=self.FORMAT_CHOICES,
+                                label=f'Формат для {stage_name}',
+                                initial=self.get_default_format(matches_in_round * 2),  # Приблизительное количество команд для этапа
+                                widget=forms.Select(attrs={'class': 'form-control'})
+                            )
+                            
+                            teams_in_round = matches_in_round
                     
-                    while current_round >= 2:
-                        stage_name = self.get_stage_name(current_round)
-                        field_name = f'format_round_{round_number}'
-                        
-                        self.fields[field_name] = forms.ChoiceField(
-                            choices=self.FORMAT_CHOICES,
-                            label=f'Формат для {stage_name}',
-                            initial=self.get_default_format(current_round),
-                            widget=forms.Select(attrs={'class': 'form-control'})
-                        )
-                        
-                        current_round = current_round // 2
-                        round_number += 1
+                    elif tournament.tournament_format == 'double_elimination':
+                        # Для Double Elimination упрощаем для малых турниров
+                        if team_count <= 3:
+                            # Для малых турниров создаем упрощенную форму
+                            self.fields['format_round_1'] = forms.ChoiceField(
+                                choices=self.FORMAT_CHOICES,
+                                label='Формат для начальных матчей',
+                                initial='BO3',
+                                widget=forms.Select(attrs={'class': 'form-control'})
+                            )
+                            self.fields['format_round_2'] = forms.ChoiceField(
+                                choices=self.FORMAT_CHOICES,
+                                label='Формат для гранд-финала',
+                                initial='BO5',
+                                widget=forms.Select(attrs={'class': 'form-control'})
+                            )
+                        else:
+                            # Для больших турниров используем старую логику
+                            current_round = team_count
+                            round_number = 1
+                            
+                            while current_round >= 2:
+                                stage_name = self.get_stage_name(current_round)
+                                field_name = f'format_round_{round_number}'
+                                
+                                self.fields[field_name] = forms.ChoiceField(
+                                    choices=self.FORMAT_CHOICES,
+                                    label=f'Формат для {stage_name}',
+                                    initial=self.get_default_format(current_round),
+                                    widget=forms.Select(attrs={'class': 'form-control'})
+                                )
+                                
+                                current_round = current_round // 2
+                                round_number += 1
+    
+    def get_stage_name_by_round(self, round_number, total_rounds, matches_count):
+        """Получает название этапа по номеру раунда и общему количеству раундов"""
+        if round_number == total_rounds:
+            return "Финал"
+        elif round_number == total_rounds - 1:
+            return "Полуфиналы" if matches_count > 1 else "Полуфинал"
+        elif round_number == total_rounds - 2:
+            return "Четвертьфиналы" if matches_count > 1 else "Четвертьфинал"
+        else:
+            return f"Раунд {round_number}"
     
     def get_stage_name(self, team_count):
         stages = {

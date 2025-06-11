@@ -1,5 +1,4 @@
-﻿
-import random
+﻿import random
 import math
 from datetime import timedelta
 from django.utils import timezone
@@ -32,36 +31,62 @@ def create_single_elimination_bracket(tournament, teams, distribution_type='rand
         
         # Создаем этапы
         team_count = len(teams)
-        current_round = team_count
-        round_number = 1
         current_time = tournament.start_date
         
-        while current_round >= 2:
-            stage_name = get_stage_name(current_round)
-            stage_format = 'BO3'  # По умолчанию
+        # Рассчитываем правильное количество раундов для Single Elimination
+        # Для N команд нужно ceil(log2(N)) раундов
+        total_rounds = max(1, math.ceil(math.log2(team_count))) if team_count > 1 else 1
+        
+        # Создаем этапы от первого раунда до финала
+        teams_in_round = team_count
+        for round_number in range(1, total_rounds + 1):
+            # Рассчитываем количество матчей в этом раунде
+            matches_in_round = math.ceil(teams_in_round / 2) if teams_in_round > 1 else 0
             
+            # Пропускаем пустые раунды
+            if matches_in_round == 0:
+                continue
+            
+            # Определяем название этапа
+            if round_number == total_rounds:
+                stage_name = "Финал"
+                stage_type = 'final'
+            elif round_number == total_rounds - 1 and total_rounds > 1:
+                stage_name = "Полуфиналы" if matches_in_round > 1 else "Полуфинал"
+                stage_type = 'normal'
+            else:
+                stage_name = get_stage_name_by_round(round_number, total_rounds, matches_in_round)
+                stage_type = 'normal'
+            
+            # Определяем формат для этого этапа
+            stage_format = 'BO3'  # По умолчанию
             if stage_formats and f'format_round_{round_number}' in stage_formats:
                 stage_format = stage_formats[f'format_round_{round_number}']
             
+            # Создаем этап
             stage = BracketStage.objects.create(
                 bracket=bracket,
                 name=stage_name,
                 format=stage_format,
-                stage_type='final' if current_round == 2 else 'normal',
+                stage_type=stage_type,
                 order=round_number,
                 scheduled_time=current_time
             )
             
             # Создаем матчи для этого этапа
-            matches_in_round = current_round // 2
-            create_matches_for_stage(stage, teams, matches_in_round, current_time)
+            if round_number == 1:
+                # В первом раунде используем все команды
+                create_matches_for_stage(stage, teams, matches_in_round, current_time)
+            else:
+                # В последующих раундах матчи создаются без команд (команды будут назначены после завершения предыдущих матчей)
+                create_empty_matches_for_stage(stage, matches_in_round, current_time)
             
-            current_round = matches_in_round
-            round_number += 1
+            # Переходим к следующему раунду
+            teams_in_round = matches_in_round
             current_time += timedelta(hours=2)  # 2 часа между этапами
         
         # Создаем матч за третье место если нужно
-        if third_place_match:
+        if third_place_match and total_rounds > 1:
             create_third_place_match(bracket, current_time)
         
         return bracket
@@ -89,14 +114,19 @@ def create_double_elimination_bracket(tournament, teams, distribution_type='rand
         team_count = len(teams)
         current_time = tournament.start_date
         
-        # Создаем верхнюю сетку (Winner's Bracket)
-        create_upper_bracket(bracket, teams, current_time, stage_formats)
-        
-        # Создаем нижнюю сетку (Loser's Bracket) - упрощенная версия
-        create_lower_bracket(bracket, team_count, current_time, stage_formats)
-        
-        # Создаем гранд-финал
-        create_grand_final(bracket, current_time + timedelta(hours=6))
+        # Для малого количества команд (2-3) используем упрощенную логику
+        if team_count <= 3:
+            create_simple_double_elimination(bracket, teams, current_time, stage_formats)
+        else:
+            # Для большого количества команд используем полную логику
+            # Создаем верхнюю сетку (Winner's Bracket)
+            create_upper_bracket(bracket, teams, current_time, stage_formats)
+            
+            # Создаем нижнюю сетку (Loser's Bracket)
+            create_lower_bracket(bracket, team_count, current_time, stage_formats)
+            
+            # Создаем гранд-финал
+            create_grand_final(bracket, current_time + timedelta(hours=6))
         
         return bracket
 
@@ -279,27 +309,105 @@ def promote_winner_to_next_stage(match):
     if not match.winner:
         return
     
-    # Для обычной сетки на выбывание
-    if match.stage.stage_type in ['normal', 'upper']:
+    bracket = match.stage.bracket
+    loser = match.team1 if match.winner == match.team2 else match.team2
+    
+    # Для Single Elimination
+    if bracket.tournament.tournament_format == 'single_elimination':
+        # Находим следующий этап в обычной последовательности
         next_stage = BracketStage.objects.filter(
-            bracket=match.stage.bracket,
-            stage_type=match.stage.stage_type,
+            bracket=bracket,
+            stage_type__in=['normal', 'final'],
             order=match.stage.order + 1
         ).first()
         
         if next_stage:
-            match_position = (match.order + 1) // 2
+            # Вычисляем позицию матча в следующем этапе
+            match_position = math.ceil(match.order / 2)
             next_match = BracketMatch.objects.filter(
                 stage=next_stage,
                 order=match_position
             ).first()
             
             if next_match:
-                if match.order % 2 == 1:
+                # Определяем, в какую позицию (team1 или team2) поставить победителя
+                if match.order % 2 == 1:  # Нечетный порядок -> team1
                     next_match.team1 = match.winner
-                else:
+                else:  # Четный порядок -> team2
                     next_match.team2 = match.winner
                 next_match.save()
+    
+    # Для Double Elimination
+    elif bracket.tournament.tournament_format == 'double_elimination':
+        if match.stage.stage_type == 'upper':
+            # Победитель идет в следующий этап верхней сетки или в гранд-финал
+            next_upper_stage = BracketStage.objects.filter(
+                bracket=bracket,
+                stage_type='upper',
+                order=match.stage.order + 1
+            ).first()
+            
+            if next_upper_stage:
+                match_position = math.ceil(match.order / 2)
+                next_match = BracketMatch.objects.filter(
+                    stage=next_upper_stage,
+                    order=match_position
+                ).first()
+                
+                if next_match:
+                    if match.order % 2 == 1:
+                        next_match.team1 = match.winner
+                    else:
+                        next_match.team2 = match.winner
+                    next_match.save()
+            else:
+                # Если нет следующего этапа верхней сетки, идем в гранд-финал
+                grand_final_stage = BracketStage.objects.filter(
+                    bracket=bracket,
+                    stage_type='final'
+                ).first()
+                
+                if grand_final_stage:
+                    grand_final_match = BracketMatch.objects.filter(
+                        stage=grand_final_stage
+                    ).first()
+                    
+                    if grand_final_match and not grand_final_match.team1:
+                        grand_final_match.team1 = match.winner
+                        grand_final_match.save()
+            
+            # Проигравший идет в нижнюю сетку
+            if loser:
+                lower_stage = BracketStage.objects.filter(
+                    bracket=bracket,
+                    stage_type='lower'
+                ).first()
+                
+                if lower_stage:
+                    lower_match = BracketMatch.objects.filter(
+                        stage=lower_stage,
+                        team1__isnull=True
+                    ).first()
+                    
+                    if lower_match:
+                        lower_match.team1 = loser
+                        lower_match.save()
+        
+        elif match.stage.stage_type == 'lower':
+            # Победитель нижней сетки идет в гранд-финал
+            grand_final_stage = BracketStage.objects.filter(
+                bracket=bracket,
+                stage_type='final'
+            ).first()
+            
+            if grand_final_stage:
+                grand_final_match = BracketMatch.objects.filter(
+                    stage=grand_final_stage
+                ).first()
+                
+                if grand_final_match and not grand_final_match.team2:
+                    grand_final_match.team2 = match.winner
+                    grand_final_match.save()
 
 
 def get_upcoming_matches(tournament):
@@ -325,3 +433,131 @@ def get_upcoming_matches(tournament):
             upcoming_matches.extend(matches)
     
     return upcoming_matches
+
+
+def get_stage_name_by_round(round_number, total_rounds, matches_count):
+    """Получает название этапа по номеру раунда и общему количеству раундов"""
+    if round_number == total_rounds:
+        return "Финал"
+    elif round_number == total_rounds - 1:
+        return "Полуфиналы" if matches_count > 1 else "Полуфинал"
+    elif round_number == total_rounds - 2:
+        return "Четвертьфиналы" if matches_count > 1 else "Четвертьфинал"
+    else:
+        return f"Раунд {round_number}"
+
+
+def create_empty_matches_for_stage(stage, matches_count, start_time):
+    """Создает пустые матчи для этапа (команды будут назначены позже)"""
+    for i in range(matches_count):
+        match_time = start_time + timedelta(minutes=i * 30)
+        
+        BracketMatch.objects.create(
+            stage=stage,
+            order=i + 1,
+            scheduled_time=match_time
+        )
+
+
+def create_simple_double_elimination(bracket, teams, start_time, stage_formats=None):
+    """Создает упрощенную Double Elimination сетку для 2-3 команд"""
+    team_count = len(teams)
+    current_time = start_time
+    
+    if team_count == 2:
+        # Для 2 команд: 1 матч верхней сетки, возможный реванш в гранд-финале
+        
+        # Верхняя сетка - финал
+        upper_final = BracketStage.objects.create(
+            bracket=bracket,
+            name="Верхний финал",
+            format='BO3',
+            stage_type='upper',
+            order=1,
+            scheduled_time=current_time
+        )
+        
+        BracketMatch.objects.create(
+            stage=upper_final,
+            team1=teams[0],
+            team2=teams[1],
+            order=1,
+            scheduled_time=current_time
+        )
+        
+        current_time += timedelta(hours=2)
+        
+        # Гранд-финал
+        grand_final = BracketStage.objects.create(
+            bracket=bracket,
+            name="Гранд-финал",
+            format='BO5',
+            stage_type='final',
+            order=100,
+            scheduled_time=current_time
+        )
+        
+        BracketMatch.objects.create(
+            stage=grand_final,
+            order=1,
+            scheduled_time=current_time
+        )
+        
+    elif team_count == 3:
+        # Для 3 команд: полуфинал верхней сетки, матч нижней сетки, гранд-финал
+        
+        # Верхняя сетка - полуфинал
+        upper_semi = BracketStage.objects.create(
+            bracket=bracket,
+            name="Верхний полуфинал",
+            format='BO3',
+            stage_type='upper',
+            order=1,
+            scheduled_time=current_time
+        )
+        
+        BracketMatch.objects.create(
+            stage=upper_semi,
+            team1=teams[0],
+            team2=teams[1],
+            order=1,
+            scheduled_time=current_time
+        )
+        
+        current_time += timedelta(hours=1)
+        
+        # Нижняя сетка - матч на выживание
+        lower_match = BracketStage.objects.create(
+            bracket=bracket,
+            name="Матч на выживание",
+            format='BO3',
+            stage_type='lower',
+            order=50,
+            scheduled_time=current_time
+        )
+        
+        # Матч между проигравшим верхнего полуфинала и третьей командой
+        BracketMatch.objects.create(
+            stage=lower_match,
+            team2=teams[2],  # Третья команда сразу попадает в нижнюю сетку
+            order=1,
+            scheduled_time=current_time
+        )
+        
+        current_time += timedelta(hours=2)
+        
+        # Гранд-финал
+        grand_final = BracketStage.objects.create(
+            bracket=bracket,
+            name="Гранд-финал",
+            format='BO5',
+            stage_type='final',
+            order=100,
+            scheduled_time=current_time
+        )
+        
+        BracketMatch.objects.create(
+            stage=grand_final,
+            order=1,
+            scheduled_time=current_time
+        )

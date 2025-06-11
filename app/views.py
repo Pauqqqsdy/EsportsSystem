@@ -8,8 +8,17 @@ from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.urls import reverse
-from .models import Tournament, TournamentBracket, BracketStage, BracketMatch, TournamentRegistration, UserProfile, Team
-from .forms import BracketGenerationForm, BracketStageForm, MatchResultForm, TeamCreationForm, TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, TournamentParticipationForm, User
+from .models import Tournament, TournamentBracket, BracketStage, BracketMatch, TournamentRegistration, UserProfile, Team, RoundRobinTable, RoundRobinMatch, RoundRobinResult
+from .forms import (
+    BracketGenerationForm, BracketStageForm, MatchResultForm, TeamCreationForm, 
+    TournamentEditForm, TournamentForm, AvatarUploadForm, ExtendedUserCreationForm, 
+    TournamentParticipationForm, User, AdvancedMatchResultForm, RoundRobinMatchResultForm,
+    ManualBracketForm, MatchScheduleForm
+)
+from .bracket_features import (
+    create_single_elimination_bracket, create_double_elimination_bracket, 
+    create_round_robin_bracket, get_upcoming_matches, promote_winner_to_next_stage
+)
 from django.contrib.auth import update_session_auth_hash, login
 from django.utils.crypto import get_random_string
 from django.db import transaction
@@ -421,6 +430,11 @@ def tournament_detail(request, tournament_id):
 
     registered_count = tournament.registered_teams.count()
     
+    # Получаем статус турнира и предстоящие матчи
+    tournament_status = tournament.get_status()
+    tournament_status_display = tournament.get_status_display()
+    upcoming_matches = get_upcoming_matches(tournament)
+    
     context = {
         'tournament': tournament,
         'is_creator': is_creator,
@@ -428,6 +442,9 @@ def tournament_detail(request, tournament_id):
         'is_registered': is_registered,
         'registered_teams': tournament.registered_teams.all(),
         'registered_count': registered_count,
+        'tournament_status': tournament_status,
+        'tournament_status_display': tournament_status_display,
+        'upcoming_matches': upcoming_matches[:5],  # Первые 5 предстоящих матчей
     }
     
     return render(request, 'app/tournaments/tournament_detail.html', context)
@@ -472,10 +489,24 @@ def participate_tournament(request, tournament_id):
             messages.error(request, 'Турнир уже заполнен')
             return redirect('tournament_detail', tournament_id=tournament.id)
         
-        team = Team.objects.create(
+        # Проверяем, есть ли уже команда с таким именем
+        team, created = Team.objects.get_or_create(
             name=request.user.username,
-            captain=request.user
+            defaults={'captain': request.user}
         )
+        
+        # Если команда уже существует, но капитан другой - создаем уникальное имя
+        if not created and team.captain != request.user:
+            # Создаем уникальное имя для команды
+            base_name = request.user.username
+            counter = 1
+            while Team.objects.filter(name=f"{base_name}_{counter}").exists():
+                counter += 1
+            
+            team = Team.objects.create(
+                name=f"{base_name}_{counter}",
+                captain=request.user
+            )
         
         tournament.registered_teams.add(team)
         messages.success(request, 'Вы успешно зарегистрированы на турнир!')
@@ -609,33 +640,55 @@ def generate_bracket(request, tournament_id):
     teams_count = tournament.registered_teams.count()
     
     if teams_count < 2:
-        messages.error(request, 'Формирование турнирной сетки доступно от двух участников и больше')
-        return redirect(f'/tournaments/{tournament_id}/?tab=overview')
+        messages.error(request, f'Формирование турнирной сетки доступно от двух участников и больше. Сейчас зарегистрировано: {teams_count}')
+        return redirect('tournament_detail', tournament_id=tournament.id)
     
     if request.method == 'POST':
-        form = BracketGenerationForm(request.POST)
+        form = BracketGenerationForm(request.POST, tournament=tournament)
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    if hasattr(tournament, 'bracket'):
-                        tournament.bracket.delete()
-                    
-                    bracket = TournamentBracket.objects.create(tournament=tournament)
                     teams = list(tournament.registered_teams.all())
+                    generation_type = form.cleaned_data['generation_type']
                     
-                    if form.cleaned_data['generation_type'] == 'random':
-                        random.shuffle(teams)
+                    # Если выбрано ручное распределение, перенаправляем на страницу распределения
+                    if generation_type == 'manual':
+                        return redirect('manual_bracket_setup', tournament_id=tournament.id)
                     
-                    create_bracket_stages(bracket, teams)
+                    # Собираем форматы для этапов
+                    stage_formats = {}
+                    for field_name, value in form.cleaned_data.items():
+                        if field_name.startswith('format_round_'):
+                            stage_formats[field_name] = value
                     
-                    messages.success(request, 'Турнирная сетка успешно создана!')
-                    return redirect('tournament_bracket', tournament_id=tournament.id)
+                    # Создаем сетку в зависимости от формата турнира
+                    if tournament.tournament_format == 'single_elimination':
+                        third_place_match = form.cleaned_data.get('third_place_match', False)
+                        create_single_elimination_bracket(
+                            tournament, teams, generation_type, 
+                            third_place_match, stage_formats
+                        )
+                    elif tournament.tournament_format == 'double_elimination':
+                        create_double_elimination_bracket(
+                            tournament, teams, generation_type, stage_formats
+                        )
+                    elif tournament.tournament_format == 'round_robin':
+                        default_format = form.cleaned_data.get('default_format', 'BO3')
+                        create_round_robin_bracket(tournament, teams, default_format)
+                    
+                    messages.success(request, f'Турнирная сетка успешно создана! Формат: {tournament.tournament_format}, Команд: {len(teams)}')
+                    
+                    # Перенаправляем в зависимости от формата
+                    if tournament.tournament_format == 'round_robin':
+                        return redirect('round_robin_table', tournament_id=tournament.id)
+                    else:
+                        return redirect('tournament_bracket', tournament_id=tournament.id)
             
             except Exception as e:
                 messages.error(request, f'Ошибка при создании сетки: {str(e)}')
                 return redirect('tournament_detail', tournament_id=tournament.id)
     else:
-        form = BracketGenerationForm()
+        form = BracketGenerationForm(tournament=tournament)
     
     return render(request, 'app/tournaments/generate_bracket.html', {
         'form': form,
@@ -667,14 +720,28 @@ def get_default_format(team_count):
 @login_required
 def tournament_bracket(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    bracket = getattr(tournament, 'bracket', None)
     is_creator = tournament.is_creator(request.user) if request.user.is_authenticated else False
     
-    return render(request, 'app/tournaments/tournament_bracket.html', {
+    context = {
         'tournament': tournament,
-        'bracket': bracket,
         'is_creator': is_creator
-    })
+    }
+    
+    # В зависимости от формата турнира показываем разные данные
+    if tournament.tournament_format == 'round_robin':
+        # Для Round Robin перенаправляем на специальную страницу
+        return redirect('round_robin_table', tournament_id=tournament.id)
+    else:
+        # Для других форматов показываем турнирную сетку
+        bracket = getattr(tournament, 'bracket', None)
+        context['bracket'] = bracket
+        
+        # Получаем предстоящие матчи
+        if bracket:
+            upcoming_matches = get_upcoming_matches(tournament)
+            context['upcoming_matches'] = upcoming_matches[:5]  # Первые 5 матчей
+    
+    return render(request, 'app/tournaments/tournament_bracket.html', context)
 
 @login_required
 def edit_stage_format(request, tournament_id, stage_id):
@@ -727,7 +794,7 @@ def update_match_result(request, tournament_id, match_id):
     else:
         form = MatchResultForm(instance=match)
     
-    return render(request, 'app/tournaments/update_match_result.html', {
+    return render(request, 'app/tournaments/matches/update_match_result.html', {
         'form': form,
         'tournament': tournament,
         'match': match
@@ -811,3 +878,250 @@ def cancel_tournament_participation(request, tournament_id):
         messages.warning(request, 'Команда не была зарегистрирована на этот турнир')
 
     return redirect('tournament_detail', tournament_id=tournament.id)
+
+@login_required
+def manual_bracket_setup(request, tournament_id):
+    """Ручное распределение команд в турнирной сетке"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может настраивать сетку')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    teams = list(tournament.registered_teams.all())
+    
+    if request.method == 'POST':
+        form = ManualBracketForm(request.POST, teams=teams)
+        if form.is_valid():
+            try:
+                # Создаем список команд в порядке, выбранном пользователем
+                ordered_teams = []
+                for i in range(len(teams)):
+                    team_id = form.cleaned_data[f'position_{i+1}']
+                    team = Team.objects.get(id=team_id)
+                    ordered_teams.append(team)
+                
+                # Создаем сетку с упорядоченными командами
+                stage_formats = {}  # Можно добавить выбор форматов позже
+                
+                if tournament.tournament_format == 'single_elimination':
+                    create_single_elimination_bracket(
+                        tournament, ordered_teams, 'manual', False, stage_formats
+                    )
+                elif tournament.tournament_format == 'double_elimination':
+                    create_double_elimination_bracket(
+                        tournament, ordered_teams, 'manual', stage_formats
+                    )
+                elif tournament.tournament_format == 'round_robin':
+                    create_round_robin_bracket(tournament, ordered_teams)
+                
+                messages.success(request, 'Турнирная сетка с ручным распределением команд создана!')
+                return redirect('tournament_bracket', tournament_id=tournament.id)
+                
+            except Exception as e:
+                messages.error(request, f'Ошибка при создании сетки: {str(e)}')
+    else:
+        form = ManualBracketForm(teams=teams)
+    
+    return render(request, 'app/tournaments/manual_bracket_setup.html', {
+        'form': form,
+        'tournament': tournament,
+        'teams': teams
+    })
+
+@login_required
+def advanced_match_result(request, tournament_id, match_id):
+    """Расширенная форма для ввода результатов матча с учетом счета"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    match = get_object_or_404(BracketMatch, id=match_id, stage__bracket__tournament=tournament)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может обновлять результаты')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+
+    if not match.team1 or not match.team2:
+        messages.error(request, 'Обе команды должны быть определены для матча')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = AdvancedMatchResultForm(request.POST, instance=match)
+        if form.is_valid():
+            match = form.save(commit=False)
+            match.is_completed = True
+            match.save()
+            
+            promote_winner_to_next_stage(match)
+            
+            messages.success(request, 'Результат матча обновлен')
+            return redirect('tournament_bracket', tournament_id=tournament.id)
+    else:
+        form = AdvancedMatchResultForm(instance=match)
+    
+    return render(request, 'app/tournaments/matches/advanced_match_result.html', {
+        'form': form,
+        'tournament': tournament,
+        'match': match
+    })
+
+@login_required
+def round_robin_match_result(request, tournament_id, match_id):
+    """Обновление результатов матча Round Robin"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    match = get_object_or_404(RoundRobinMatch, id=match_id, table__tournament=tournament)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может обновлять результаты')
+        return redirect('round_robin_table', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = RoundRobinMatchResultForm(request.POST, instance=match)
+        if form.is_valid():
+            match = form.save(commit=False)
+            match.is_completed = True
+            match.save()
+            
+            messages.success(request, 'Результат матча обновлен')
+            return redirect('round_robin_table', tournament_id=tournament.id)
+    else:
+        form = RoundRobinMatchResultForm(instance=match)
+    
+    return render(request, 'app/tournaments/round_robin_match_result.html', {
+        'form': form,
+        'tournament': tournament,
+        'match': match
+    })
+
+@login_required
+def round_robin_table(request, tournament_id):
+    """Отображение таблицы Round Robin"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if tournament.tournament_format != 'round_robin':
+        messages.error(request, 'Этот турнир не использует формат Round Robin')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    table = getattr(tournament, 'round_robin_table', None)
+    is_creator = tournament.is_creator(request.user) if request.user.is_authenticated else False
+    
+    # Получаем предстоящие матчи
+    upcoming_matches = []
+    if table:
+        upcoming_matches = table.matches.filter(
+            is_completed=False,
+            scheduled_time__isnull=False
+        ).order_by('scheduled_time')[:10]
+    
+    return render(request, 'app/tournaments/round_robin_table.html', {
+        'tournament': tournament,
+        'table': table,
+        'is_creator': is_creator,
+        'upcoming_matches': upcoming_matches
+    })
+
+@login_required 
+def tournament_matches(request, tournament_id):
+    """Страница со всеми матчами турнира"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    upcoming_matches = get_upcoming_matches(tournament)
+    matches_by_stage = []
+    
+    # Группируем матчи по стадиям
+    if tournament.tournament_format == 'round_robin':
+        if hasattr(tournament, 'round_robin_table'):
+            all_matches = tournament.round_robin_table.matches.all()
+            if all_matches:
+                matches_by_stage.append({
+                    'stage': type('obj', (object,), {'name': 'Round Robin', 'stage_type': 'ROUND_ROBIN'})(),
+                    'matches': all_matches
+                })
+    else:
+        if hasattr(tournament, 'bracket'):
+            for stage in tournament.bracket.stages.all().order_by('order'):
+                stage_matches = stage.matches.all()
+                if stage_matches:
+                    matches_by_stage.append({
+                        'stage': stage,
+                        'matches': stage_matches
+                    })
+    
+    context = {
+        'tournament': tournament,
+        'upcoming_matches': upcoming_matches,
+        'matches_by_stage': matches_by_stage
+    }
+    
+    return render(request, 'app/tournaments/matches/tournament_matches.html', context)
+
+@login_required
+def match_detail(request, tournament_id, match_id):
+    """Детальная страница матча"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    # Пытаемся найти матч в обычной сетке или в Round Robin
+    match = None
+    match_type = None
+    
+    try:
+        match = BracketMatch.objects.get(id=match_id, stage__bracket__tournament=tournament)
+        match_type = 'bracket'
+    except BracketMatch.DoesNotExist:
+        try:
+            match = RoundRobinMatch.objects.get(id=match_id, table__tournament=tournament)
+            match_type = 'round_robin'
+        except RoundRobinMatch.DoesNotExist:
+            messages.error(request, 'Матч не найден')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    is_creator = tournament.is_creator(request.user) if request.user.is_authenticated else False
+    
+    context = {
+        'tournament': tournament,
+        'match': match,
+        'match_type': match_type,
+        'is_creator': is_creator
+    }
+    
+    return render(request, 'app/tournaments/matches/match_detail.html', context)
+
+@login_required
+def edit_match_schedule(request, tournament_id, match_id):
+    """Изменение времени проведения матча"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может изменять расписание')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    # Определяем тип матча
+    match = None
+    match_type = None
+    
+    try:
+        match = BracketMatch.objects.get(id=match_id, stage__bracket__tournament=tournament)
+        match_type = 'bracket'
+    except BracketMatch.DoesNotExist:
+        try:
+            match = RoundRobinMatch.objects.get(id=match_id, table__tournament=tournament)
+            match_type = 'round_robin'
+        except RoundRobinMatch.DoesNotExist:
+            messages.error(request, 'Матч не найден')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        form = MatchScheduleForm(request.POST)
+        if form.is_valid():
+            match.scheduled_time = form.cleaned_data['scheduled_time']
+            match.save()
+            
+            messages.success(request, 'Время матча успешно обновлено')
+            return redirect('match_detail', tournament_id=tournament.id, match_id=match.id)
+    else:
+        form = MatchScheduleForm(initial={'scheduled_time': match.scheduled_time})
+    
+    return render(request, 'app/tournaments/matches/edit_match_schedule.html', {
+        'form': form,
+        'tournament': tournament,
+        'match': match,
+        'match_type': match_type
+    })

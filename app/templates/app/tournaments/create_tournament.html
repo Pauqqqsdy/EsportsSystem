@@ -1,17 +1,108 @@
 {% extends "app/layout.html" %}
-
+{% load static %}
 {% block content %}
-<div class="container mt-4">
+
+<style>
+    /* Градиентный фон карточки */
+    .card-body-create-tournament {
+        background: linear-gradient(145deg, #1a1a2e, #161b2e);
+        border-radius: 10px;
+        padding: 2rem;
+    }
+        .card-body-create-tournament h3 {
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 2rem;
+        }
+
+    /* Тень под карточкой */
+    .card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Лейблы форм */
+    label {
+        font-weight: 500;
+        color: #ffffff;
+    }
+
+    /* Поля ввода */
+    input[type="text"],
+    input[type="file"] {
+        background-color: #ffffff;
+        border: none;
+        color: black;
+        border-radius: 10px;
+        padding: 10px 15px;
+        width: 100%;
+        font-size: 1rem;
+    }
+
+        input[type="text"]::placeholder,
+        input[type="file"]::placeholder {
+            color: #fff !important;
+            opacity: 0.7;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            background-color: #ffffff;
+            border-color: #ffffff;
+            color: black;
+            box-shadow: 0 0 0 0.2rem rgba(76, 201, 240, 0.25);
+        }
+
+
+    /* Подсказки */
+    .form-text {
+        color: #ffffff;
+        font-size: 0.9rem;
+    }
+
+    /* Сообщения об ошибках */
+    .invalid-feedback {
+        color: #ffcccc;
+        font-size: 0.9rem;
+    }
+
+    /* Кнопка создания команды */
+    .btn-primary {
+        background-color: #4cc9f0;
+        border: none;
+        font-weight: bold;
+        padding: 10px 20px;
+        font-size: 1.1rem;
+        border-radius: 10px;
+        transition: background-color 0.3s ease;
+    }
+
+        .btn-primary:hover {
+            background-color: #3aa7cc;
+        }
+
+    /* Иконки */
+    i.fas {
+        color: #4cc9f0;
+    }
+
+    /* Адаптивность */
+    @media (max-width: 576px) {
+        .card-body-create-tournament {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
+<div class="container mt-5 py-4">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <div class="card shadow">
-                <div class="card-header text-center">
-                    <h3 class="mb-0">
-                        <i class="fas fa-trophy me-2 text-primary"></i>
-                        Создание нового турнира
+            <div class="card shadow-sm">
+                <div class="card-body card-body-create-tournament">
+                    <h3 class="mb-4">
+                        <i class="fas fa-trophy me-2 text-primary"></i>Создание нового турнира
                     </h3>
-                </div>
-                <div class="card-body">
                     <form method="post" id="tournamentForm">
                         {% csrf_token %}
 
@@ -103,6 +194,7 @@
                             {% endif %}
                         </div>
 
+                        <!-- Кнопка отправки -->
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-plus me-1"></i>Создать турнир
@@ -114,6 +206,7 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -124,6 +217,7 @@
         const tournamentFormatSelect = document.getElementById('id_tournament_format');
         const maxTeamsSelect = document.getElementById('id_max_teams');
 
+        // Автоматически менять формат игры в зависимости от дисциплины
         disciplineSelect.addEventListener('change', function () {
             const discipline = this.value;
             gameFormatSelect.innerHTML = '';
@@ -148,6 +242,7 @@
             }
         });
 
+        // Обновить опции количества команд в зависимости от формата турнира
         function updateMaxTeamsOptions() {
             const format = tournamentFormatSelect.value;
             let options = [];
@@ -162,8 +257,9 @@
             }
             maxTeamsSelect.innerHTML = options.join('');
         }
+
         tournamentFormatSelect.addEventListener('change', updateMaxTeamsOptions);
-        updateMaxTeamsOptions();
+        updateMaxTeamsOptions(); // Вызвать один раз при загрузке
     });
 </script>
 {% endblock %}

@@ -145,7 +145,7 @@
         <div class="col-md-8">
             <!-- Заголовок команды с аватаром -->
             <div class="d-flex align-items-center mb-3">
-                <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}{% static 'app/images/default-team.png' %}{% endif %}"
+                <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}/media/team_avatars/default.jpg{% endif %}"
                      alt="{{ team.name }}"
                      style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;">
                 <h1 class="mb-0 ms-3">{{ team.name }}</h1>
@@ -266,7 +266,6 @@
 
             <!-- Блок Участие -->
             <div class="card mt-4 mb-4">
-                <div class="card-body">
                     {% if user.is_authenticated %}
                     {% if is_member and not is_captain %}
                     <form action="{% url 'leave_team' %}" method="post">
@@ -283,7 +282,6 @@
                         Для просмотра информации необходимо <a href="{% url 'login' %}">войти</a>
                     </div>
                     {% endif %}
-                </div>
             </div>
         </div>
     </div>

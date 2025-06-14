@@ -226,8 +226,26 @@ class TournamentParticipationForm(forms.Form):
 class TournamentEditForm(TournamentForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Отключаем поля, которые нельзя менять после создания
         self.fields['discipline'].disabled = True
         self.fields['game_format'].disabled = True
+        self.fields['tournament_format'].disabled = True
+        
+        # Обновляем choices для max_teams в зависимости от формата турнира
+        if self.instance and self.instance.tournament_format:
+            if self.instance.tournament_format == 'round_robin':
+                self.fields['max_teams'].choices = [(i, str(i)) for i in range(2, 21)]
+            else:
+                self.fields['max_teams'].choices = [(i, str(i)) for i in [2, 4, 8, 16, 32, 64, 128, 256, 512]]
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        # Проверяем, что max_teams не меньше текущего количества зарегистрированных команд
+        if 'max_teams' in cleaned_data:
+            current_teams_count = self.instance.registered_teams_count()
+            if cleaned_data['max_teams'] < current_teams_count:
+                raise ValidationError(f"Невозможно установить меньшее количество команд, чем уже зарегистрировано ({current_teams_count})")
+        return cleaned_data
 
 class BracketGenerationForm(forms.Form):
     GENERATION_CHOICES = [

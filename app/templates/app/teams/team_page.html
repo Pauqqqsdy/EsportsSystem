@@ -268,7 +268,7 @@
             <div class="card mt-4 mb-4">
                 <div class="card-body">
                     {% if user.is_authenticated %}
-                    {% if is_member %}
+                    {% if is_member and not is_captain %}
                     <form action="{% url 'leave_team' %}" method="post">
                         {% csrf_token %}
                         <div class="d-grid">

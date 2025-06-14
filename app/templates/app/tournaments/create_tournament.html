@@ -26,6 +26,17 @@
                             {% endif %}
                         </div>
 
+                        <!-- Формат турнира -->
+                        <div class="mb-3">
+                            <label for="{{ form.tournament_format.id_for_label }}" class="form-label">
+                                <i class="fas fa-sitemap me-1"></i>Формат турнира*
+                            </label>
+                            {{ form.tournament_format }}
+                            {% if form.tournament_format.errors %}
+                            <div class="invalid-feedback d-block">{{ form.tournament_format.errors }}</div>
+                            {% endif %}
+                        </div>
+
                         <!-- Максимальное количество команд -->
                         <div class="mb-3">
                             <label for="{{ form.max_teams.id_for_label }}" class="form-label">
@@ -70,17 +81,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- Формат турнира -->
-                        <div class="mb-3">
-                            <label for="{{ form.tournament_format.id_for_label }}" class="form-label">
-                                <i class="fas fa-sitemap me-1"></i>Формат турнира*
-                            </label>
-                            {{ form.tournament_format }}
-                            {% if form.tournament_format.errors %}
-                            <div class="invalid-feedback d-block">{{ form.tournament_format.errors }}</div>
-                            {% endif %}
-                        </div>
-
                         <!-- Локация -->
                         <div class="mb-3">
                             <label for="{{ form.location.id_for_label }}" class="form-label">
@@ -121,12 +121,12 @@
     document.addEventListener('DOMContentLoaded', function () {
         const disciplineSelect = document.getElementById('id_discipline');
         const gameFormatSelect = document.getElementById('id_game_format');
+        const tournamentFormatSelect = document.getElementById('id_tournament_format');
+        const maxTeamsSelect = document.getElementById('id_max_teams');
 
         disciplineSelect.addEventListener('change', function () {
             const discipline = this.value;
-
             gameFormatSelect.innerHTML = '';
-
             if (discipline === 'Dota 2') {
                 gameFormatSelect.innerHTML = `
                     <option value="1x1">1x1</option>
@@ -147,6 +147,23 @@
                 `;
             }
         });
+
+        function updateMaxTeamsOptions() {
+            const format = tournamentFormatSelect.value;
+            let options = [];
+            if (format === 'round_robin') {
+                for (let i = 2; i <= 20; i++) {
+                    options.push(`<option value="${i}">${i}</option>`);
+                }
+            } else if (format === 'single_elimination' || format === 'double_elimination') {
+                [2, 4, 8, 16, 32, 64, 128, 256, 512].forEach(i => {
+                    options.push(`<option value="${i}">${i}</option>`);
+                });
+            }
+            maxTeamsSelect.innerHTML = options.join('');
+        }
+        tournamentFormatSelect.addEventListener('change', updateMaxTeamsOptions);
+        updateMaxTeamsOptions();
     });
 </script>
 {% endblock %}

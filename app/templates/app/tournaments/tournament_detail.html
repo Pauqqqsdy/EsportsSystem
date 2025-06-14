@@ -195,20 +195,6 @@
 </style>
 
 <div class="container">
-    <!-- Отображение сообщений -->
-    {% if messages %}
-    <div class="row">
-        <div class="col-12">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
     <div class="row">
         <!-- Левая колонка -->
         <div class="col-md-8">
@@ -282,8 +268,67 @@
 
                 <!-- Матчи -->
                 <div id="matches" class="tab-pane fade">
-                    <h5>Матчи</h5>
-                    <p class="text-center text-muted">Сетка пока не сформирована</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Матчи</h5>
+                        <a href="{% url 'tournament_matches' tournament.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-list me-1"></i>Все матчи
+                        </a>
+                    </div>
+
+                    {% if upcoming_matches %}
+                    <h6 class="text-warning">
+                        <i class="fas fa-clock me-2"></i>
+                        Предстоящие матчи
+                    </h6>
+                    {% for match in upcoming_matches %}
+                    <div class="card mb-3 border-warning">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="fw-bold">{{ match.team1.name }}</div>
+                                        <span class="text-primary fw-bold">VS</span>
+                                        <div class="fw-bold">{{ match.team2.name }}</div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {% if match.stage %}
+                                        {{ match.stage.name }} - {{ match.stage.get_format_display }}
+                                        {% else %}
+                                        Round Robin
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="text-warning small">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ match.scheduled_time|date:"d.m.Y H:i" }}
+                                    </div>
+                                    <a href="{% url 'match_detail' tournament.id match.id %}"
+                                       class="btn btn-outline-primary btn-sm mt-1">
+                                        <i class="fas fa-eye me-1"></i>Подробнее
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">
+                            {% if tournament.bracket or tournament.round_robin_table %}
+                            Нет предстоящих матчей
+                            {% else %}
+                            Сетка турнира еще не создана
+                            {% endif %}
+                        </p>
+                        {% if is_creator and not tournament.bracket and not tournament.round_robin_table %}
+                        <a href="{% url 'generate_bracket' tournament.id %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Создать сетку
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- Команды -->

@@ -1,11 +1,12 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
-from .models import BracketMatch, BracketStage, Tournament, UserProfile, Team
+from .models import BracketMatch, BracketStage, Tournament, UserProfile, Team, RoundRobinMatch
 from django.contrib.admin import widgets
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
+import math
 
 class BootstrapAuthenticationForm(AuthenticationForm):
     username = forms.CharField(max_length=16,
@@ -105,31 +106,9 @@ class ExtendedUserCreationForm(UserCreationForm):
         return username
 
 class AvatarUploadForm(forms.ModelForm):
-    email = forms.EmailField(required=True, label="Email")
-
     class Meta:
         model = UserProfile
         fields = ['avatar']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.user:
-            self.fields['email'].initial = self.instance.user.email
-
-    def clean_email(self):
-        email = self.cleaned_data['email']
-        if User.objects.filter(email=email).exclude(pk=self.instance.user.pk).exists():
-            raise ValidationError("Пользователь с такой почтой уже зарегистрирован")
-        return email
-
-    def save(self, commit=True):
-        profile = super().save(commit=False)
-        if commit:
-            profile.save()
-            user = profile.user
-            user.email = self.cleaned_data['email']
-            user.save()
-        return profile
 
 class TeamCreationForm(forms.ModelForm):
     class Meta:
@@ -142,10 +121,8 @@ class TeamCreationForm(forms.ModelForm):
     
     def clean_name(self):
         name = self.cleaned_data['name']
-        # Получаем текущий экземпляр команды из формы
         current_team = self.instance
 
-        # Проверяем, существует ли команда с таким именем, исключая текущую (если редактируем)
         if Team.objects.filter(name__iexact=name).exclude(pk=current_team.pk).exists():
             raise forms.ValidationError("Команда с таким названием уже существует")
         return name
@@ -164,15 +141,11 @@ class TournamentForm(forms.ModelForm):
         super(TournamentForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs.update({'class': 'form-control'})
-        
-        # Добавляем пустой выбор для формата турнира
         tournament_format_choices = [('', '--------')] + list(Tournament.TOURNAMENT_FORMAT_CHOICES)
         self.fields['tournament_format'].choices = tournament_format_choices
-        
         if self.instance and self.instance.pk:
             self.fields['discipline'].disabled = True
             self.fields['game_format'].disabled = True
-        
         if 'discipline' in self.data:
             try:
                 discipline = self.data.get('discipline')
@@ -181,6 +154,12 @@ class TournamentForm(forms.ModelForm):
                 pass
         elif self.instance.pk:
             self.update_game_format_choices(self.instance.discipline)
+        # Динамические choices для max_teams
+        t_format = self.data.get('tournament_format') or (self.instance.tournament_format if self.instance else None)
+        if t_format == 'round_robin':
+            self.fields['max_teams'].choices = [(i, str(i)) for i in range(2, 21)]
+        else:
+            self.fields['max_teams'].choices = [(i, str(i)) for i in [2, 4, 8, 16, 32, 64, 128, 256, 512]]
     
     def update_game_format_choices(self, discipline):
         if discipline == 'Dota 2':
@@ -247,8 +226,26 @@ class TournamentParticipationForm(forms.Form):
 class TournamentEditForm(TournamentForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Отключаем поля, которые нельзя менять после создания
         self.fields['discipline'].disabled = True
         self.fields['game_format'].disabled = True
+        self.fields['tournament_format'].disabled = True
+        
+        # Обновляем choices для max_teams в зависимости от формата турнира
+        if self.instance and self.instance.tournament_format:
+            if self.instance.tournament_format == 'round_robin':
+                self.fields['max_teams'].choices = [(i, str(i)) for i in range(2, 21)]
+            else:
+                self.fields['max_teams'].choices = [(i, str(i)) for i in [2, 4, 8, 16, 32, 64, 128, 256, 512]]
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        # Проверяем, что max_teams не меньше текущего количества зарегистрированных команд
+        if 'max_teams' in cleaned_data:
+            current_teams_count = self.instance.registered_teams_count()
+            if cleaned_data['max_teams'] < current_teams_count:
+                raise ValidationError(f"Невозможно установить меньшее количество команд, чем уже зарегистрировано ({current_teams_count})")
+        return cleaned_data
 
 class BracketGenerationForm(forms.Form):
     GENERATION_CHOICES = [
@@ -256,11 +253,322 @@ class BracketGenerationForm(forms.Form):
         ('manual', 'Ручное распределение команд'),
     ]
     
+    FORMAT_CHOICES = [
+        ('BO1', 'Best of 1'),
+        ('BO3', 'Best of 3'),
+        ('BO5', 'Best of 5'),
+    ]
+    
     generation_type = forms.ChoiceField(
         choices=GENERATION_CHOICES,
         widget=forms.RadioSelect,
-        label='Способ формирования сетки'
+        label='Способ формирования сетки',
+        initial='random'
     )
+    
+    def __init__(self, *args, tournament=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tournament = tournament
+        
+        if tournament:
+            # Добавляем поле для матча за 3 место только для Single Elimination
+            if tournament.tournament_format == 'single_elimination':
+                self.fields['third_place_match'] = forms.BooleanField(
+                    required=False,
+                    label='Провести матч за третье место',
+                    initial=False
+                )
+            
+            # Для Round Robin добавляем выбор формата игр
+            if tournament.tournament_format == 'round_robin':
+                self.fields['default_format'] = forms.ChoiceField(
+                    choices=self.FORMAT_CHOICES,
+                    label='Формат игр',
+                    initial='BO3',
+                    widget=forms.Select(attrs={'class': 'form-control'})
+                )
+            else:
+                # Для других форматов добавляем форматы для каждого этапа динамически
+                team_count = tournament.registered_teams.count()
+                if team_count >= 2:
+                    # Используем тот же алгоритм, что и в bracket_features.py
+                    if tournament.tournament_format == 'single_elimination':
+                        # Для Single Elimination используем улучшенный алгоритм
+                        total_rounds = max(1, math.ceil(math.log2(team_count))) if team_count > 1 else 1
+                        
+                        teams_in_round = team_count
+                        for round_number in range(1, total_rounds + 1):
+                            matches_in_round = math.ceil(teams_in_round / 2) if teams_in_round > 1 else 0
+                            
+                            if matches_in_round == 0:
+                                continue
+                            
+                            # Определяем название этапа
+                            if round_number == total_rounds:
+                                stage_name = "Финал"
+                            elif round_number == total_rounds - 1 and total_rounds > 1:
+                                stage_name = "Полуфиналы" if matches_in_round > 1 else "Полуфинал"
+                            else:
+                                stage_name = self.get_stage_name_by_round(round_number, total_rounds, matches_in_round)
+                            
+                            field_name = f'format_round_{round_number}'
+                            self.fields[field_name] = forms.ChoiceField(
+                                choices=self.FORMAT_CHOICES,
+                                label=f'Формат для {stage_name}',
+                                initial=self.get_default_format(matches_in_round * 2),  # Приблизительное количество команд для этапа
+                                widget=forms.Select(attrs={'class': 'form-control'})
+                            )
+                            
+                            teams_in_round = matches_in_round
+                    
+                    elif tournament.tournament_format == 'double_elimination':
+                        # Для Double Elimination упрощаем для малых турниров
+                        if team_count <= 3:
+                            # Для малых турниров создаем упрощенную форму
+                            self.fields['format_round_1'] = forms.ChoiceField(
+                                choices=self.FORMAT_CHOICES,
+                                label='Формат для начальных матчей',
+                                initial='BO3',
+                                widget=forms.Select(attrs={'class': 'form-control'})
+                            )
+                            self.fields['format_round_2'] = forms.ChoiceField(
+                                choices=self.FORMAT_CHOICES,
+                                label='Формат для гранд-финала',
+                                initial='BO5',
+                                widget=forms.Select(attrs={'class': 'form-control'})
+                            )
+                        else:
+                            # Для больших турниров используем старую логику
+                            current_round = team_count
+                            round_number = 1
+                            
+                            while current_round >= 2:
+                                stage_name = self.get_stage_name(current_round)
+                                field_name = f'format_round_{round_number}'
+                                
+                                self.fields[field_name] = forms.ChoiceField(
+                                    choices=self.FORMAT_CHOICES,
+                                    label=f'Формат для {stage_name}',
+                                    initial=self.get_default_format(current_round),
+                                    widget=forms.Select(attrs={'class': 'form-control'})
+                                )
+                                
+                                current_round = current_round // 2
+                                round_number += 1
+    
+    def get_stage_name_by_round(self, round_number, total_rounds, matches_count):
+        """Получает название этапа по номеру раунда и общему количеству раундов"""
+        if round_number == total_rounds:
+            return "Финал"
+        elif round_number == total_rounds - 1:
+            return "Полуфиналы" if matches_count > 1 else "Полуфинал"
+        elif round_number == total_rounds - 2:
+            return "Четвертьфиналы" if matches_count > 1 else "Четвертьфинал"
+        else:
+            return f"Раунд {round_number}"
+    
+    def get_stage_name(self, team_count):
+        stages = {
+            2: 'Финал',
+            4: 'Полуфиналы',
+            8: 'Четвертьфиналы',
+            16: '1/8 финала',
+            32: '1/16 финала',
+            64: '1/32 финала',
+            128: '1/64 финала',
+            256: '1/128 финала',
+            512: '1/256 финала'
+        }
+        return stages.get(team_count, f'Раунд на {team_count} команд')
+    
+    def get_default_format(self, team_count):
+        if team_count <= 4:
+            return 'BO3'
+        elif team_count <= 8:
+            return 'BO3'
+        else:
+            return 'BO1'
+
+
+class ManualBracketForm(forms.Form):
+    """Форма для ручного распределения команд в турнирной сетке"""
+    
+    def __init__(self, *args, teams=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if teams:
+            team_choices = [('', '---')] + [(team.id, team.name) for team in teams]
+            
+            # Создаем поля для каждой позиции в первом раунде
+            positions_count = len(teams)
+            for i in range(positions_count):
+                self.fields[f'position_{i+1}'] = forms.ChoiceField(
+                    choices=team_choices,
+                    label=f'Позиция {i+1}',
+                    required=True,
+                    widget=forms.Select(attrs={'class': 'form-control'})
+                )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        selected_teams = []
+        
+        for field_name, team_id in cleaned_data.items():
+            if field_name.startswith('position_') and team_id:
+                if team_id in selected_teams:
+                    raise forms.ValidationError(f"Команда не может быть выбрана дважды")
+                selected_teams.append(team_id)
+        
+        return cleaned_data
+
+
+class AdvancedMatchResultForm(forms.ModelForm):
+    """Расширенная форма для ввода результатов матча с учетом формата"""
+    
+    class Meta:
+        model = BracketMatch
+        fields = ['team1_score', 'team2_score']
+        widgets = {
+            'team1_score': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'team2_score': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if self.instance and self.instance.stage:
+            stage_format = self.instance.stage.format
+            
+            # Устанавливаем максимальные значения в зависимости от формата
+            max_score = {
+                'BO1': 1,
+                'BO3': 2,
+                'BO5': 3
+            }.get(stage_format, 3)
+            
+            self.fields['team1_score'].widget.attrs['max'] = max_score
+            self.fields['team2_score'].widget.attrs['max'] = max_score
+            
+            # Добавляем метки с названиями команд
+            if self.instance.team1:
+                self.fields['team1_score'].label = f"Счет команды {self.instance.team1.name}"
+            if self.instance.team2:
+                self.fields['team2_score'].label = f"Счет команды {self.instance.team2.name}"
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        team1_score = cleaned_data.get('team1_score', 0)
+        team2_score = cleaned_data.get('team2_score', 0)
+        
+        if not self.instance or not self.instance.stage:
+            return cleaned_data
+        
+        stage_format = self.instance.stage.format
+        
+        # Проверяем корректность счета в зависимости от формата
+        if stage_format == 'BO1':
+            if (team1_score + team2_score) != 1:
+                raise forms.ValidationError("В формате BO1 общий счет должен быть 1")
+            if max(team1_score, team2_score) != 1:
+                raise forms.ValidationError("В формате BO1 победитель должен иметь счет 1")
+        
+        elif stage_format == 'BO3':
+            if max(team1_score, team2_score) > 2:
+                raise forms.ValidationError("В формате BO3 максимальный счет 2")
+            if max(team1_score, team2_score) < 2:
+                raise forms.ValidationError("В формате BO3 победитель должен выиграть минимум 2 игры")
+            if team1_score == team2_score:
+                raise forms.ValidationError("В матче должен быть определен победитель")
+        
+        elif stage_format == 'BO5':
+            if max(team1_score, team2_score) > 3:
+                raise forms.ValidationError("В формате BO5 максимальный счет 3")
+            if max(team1_score, team2_score) < 3:
+                raise forms.ValidationError("В формате BO5 победитель должен выиграть минимум 3 игры")
+            if team1_score == team2_score:
+                raise forms.ValidationError("В матче должен быть определен победитель")
+        
+        return cleaned_data
+
+
+class RoundRobinMatchResultForm(forms.ModelForm):
+    """Форма для результатов матчей Round Robin"""
+    
+    class Meta:
+        model = RoundRobinMatch
+        fields = ['team1_score', 'team2_score']
+        widgets = {
+            'team1_score': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'team2_score': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        if self.instance:
+            # Устанавливаем максимальные значения в зависимости от формата
+            max_score = {
+                'BO1': 1,
+                'BO3': 2,
+                'BO5': 3
+            }.get(self.instance.format, 3)
+            
+            self.fields['team1_score'].widget.attrs['max'] = max_score
+            self.fields['team2_score'].widget.attrs['max'] = max_score
+            
+            # Добавляем метки с названиями команд
+            if self.instance.team1:
+                self.fields['team1_score'].label = f"Счет команды {self.instance.team1.name}"
+            if self.instance.team2:
+                self.fields['team2_score'].label = f"Счет команды {self.instance.team2.name}"
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        team1_score = cleaned_data.get('team1_score', 0)
+        team2_score = cleaned_data.get('team2_score', 0)
+        
+        if not self.instance:
+            return cleaned_data
+        
+        match_format = self.instance.format
+        
+        # Проверяем корректность счета в зависимости от формата
+        if match_format == 'BO1':
+            if (team1_score + team2_score) != 1:
+                raise forms.ValidationError("В формате BO1 общий счет должен быть 1")
+        elif match_format == 'BO3':
+            if max(team1_score, team2_score) > 2:
+                raise forms.ValidationError("В формате BO3 максимальный счет 2")
+            if max(team1_score, team2_score) < 2:
+                raise forms.ValidationError("В формате BO3 победитель должен выиграть минимум 2 игры")
+        elif match_format == 'BO5':
+            if max(team1_score, team2_score) > 3:
+                raise forms.ValidationError("В формате BO5 максимальный счет 3")
+            if max(team1_score, team2_score) < 3:
+                raise forms.ValidationError("В формате BO5 победитель должен выиграть минимум 3 игры")
+        
+        if team1_score == team2_score:
+            raise forms.ValidationError("В матче должен быть определен победитель")
+        
+        return cleaned_data
+
+
+class MatchScheduleForm(forms.Form):
+    """Форма для изменения времени проведения матча"""
+    scheduled_time = forms.DateTimeField(
+        label='Время проведения',
+        widget=forms.DateTimeInput(attrs={
+            'type': 'datetime-local',
+            'class': 'form-control'
+        }),
+        required=True
+    )
+    
+    def clean_scheduled_time(self):
+        scheduled_time = self.cleaned_data.get('scheduled_time')
+        if scheduled_time and scheduled_time < timezone.now():
+            raise forms.ValidationError("Нельзя назначить матч на прошедшее время")
+        return scheduled_time
 
 class BracketStageForm(forms.ModelForm):
     class Meta:

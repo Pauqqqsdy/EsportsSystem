@@ -34,9 +34,15 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="app\bracket_features.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="app\forms.py" />
     <Compile Include="app\models.py" />
     <Compile Include="app\tests.py" />
+    <Compile Include="app\validators.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="app\views.py" />
     <Compile Include="app\__init__.py" />
     <Compile Include="app\migrations\__init__.py" />
@@ -61,6 +67,7 @@
     <Folder Include="app\templates\app\tournaments\" />
     <Folder Include="app\templates\app\teams\" />
     <Folder Include="app\templates\app\profile\" />
+    <Folder Include="app\templates\app\tournaments\matches\" />
     <Folder Include="app\templates\registration\" />
     <Folder Include="EsportsSystem\" />
   </ItemGroup>
@@ -78,18 +85,26 @@
     <Content Include="app\templates\app\tournaments\edit_stage_format.html" />
     <Content Include="app\templates\app\tournaments\edit_tournament.html" />
     <Content Include="app\templates\app\tournaments\generate_bracket.html" />
+    <Content Include="app\templates\app\tournaments\manual_bracket_setup.html" />
+    <Content Include="app\templates\app\tournaments\matches\advanced_match_result.html" />
+    <Content Include="app\templates\app\tournaments\matches\edit_match_schedule.html" />
+    <Content Include="app\templates\app\tournaments\matches\tournament_matches.html" />
+    <Content Include="app\templates\app\tournaments\matches\update_match_result.html" />
+    <Content Include="app\templates\app\tournaments\matches\match_detail.html" />
     <Content Include="app\templates\app\tournaments\my_tournaments.html" />
     <Content Include="app\templates\app\tournaments\participate_tournament.html" />
+    <Content Include="app\templates\app\tournaments\round_robin_table.html" />
     <Content Include="app\templates\app\tournaments\tournament_bracket.html" />
     <Content Include="app\templates\app\tournaments\tournament_detail.html" />
     <Content Include="app\templates\app\tournaments\update_match_result.html" />
-    <Content Include="app\templates\registration\password_reset_completed.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />
+    <Content Include="app\templates\registration\password_reset_email.txt" />
     <Content Include="app\templates\registration\password_reset_form.html" />
     <Content Include="app\templates\app\profile\profile.html" />
     <Content Include="app\templates\app\auth\register.html" />
     <Content Include="app\templates\registration\password_reset_confirm.html" />
+    <Content Include="app\templates\registration\password_reset_site.txt" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />
     <Content Include="app\static\app\content\bootstrap.css" />

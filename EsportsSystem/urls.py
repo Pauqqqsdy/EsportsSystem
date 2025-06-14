@@ -40,16 +40,25 @@ urlpatterns = [
     path('tournaments/<int:tournament_id>/delete/', views.delete_tournament, name='delete_tournament'),
     path('tournaments/<int:tournament_id>/participate/', views.participate_tournament, name='participate_tournament'),
     path('tournaments/<int:tournament_id>/remove_team/<int:team_id>/', views.remove_team_from_tournament, name='remove_team_from_tournament'),
+    path('tournament/<int:tournament_id>/cancel/', views.cancel_tournament_participation, name='cancel_tournament_participation'),
+
+    # Турнирные сетки
     path('tournaments/<int:tournament_id>/bracket/', views.tournament_bracket, name='tournament_bracket'),
     path('tournaments/<int:tournament_id>/generate_bracket/', views.generate_bracket, name='generate_bracket'),
-    path('tournaments/<int:tournament_id>/stages/<int:stage_id>/edit/', views.edit_stage_format, name='edit_stage_format'),
-    path('tournaments/<int:tournament_id>/matches/<int:match_id>/update/', views.update_match_result, name='update_match_result'),
-    path('tournaments/<int:tournament_id>/bracket/', views.tournament_bracket, name='tournament_bracket'),
-    path('tournaments/<int:tournament_id>/generate_bracket/', views.generate_bracket, name='generate_bracket'),
+    path('tournaments/<int:tournament_id>/manual_bracket/', views.manual_bracket_setup, name='manual_bracket_setup'),
     path('tournaments/<int:tournament_id>/stages/<int:stage_id>/edit/', views.edit_stage_format, name='edit_stage_format'),
     path('tournaments/<int:tournament_id>/stages/<int:stage_id>/complete/', views.complete_stage, name='complete_stage'),
+    
+    # Матчи
+    path('tournaments/<int:tournament_id>/matches/', views.tournament_matches, name='tournament_matches'),
+    path('tournaments/<int:tournament_id>/matches/<int:match_id>/', views.match_detail, name='match_detail'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/update/', views.update_match_result, name='update_match_result'),
-    path('tournament/<int:tournament_id>/cancel/', views.cancel_tournament_participation, name='cancel_tournament_participation'),
+    path('tournaments/<int:tournament_id>/matches/<int:match_id>/advanced_update/', views.advanced_match_result, name='advanced_match_result'),
+    path('tournaments/<int:tournament_id>/matches/<int:match_id>/schedule/', views.edit_match_schedule, name='edit_match_schedule'),
+    
+    # Round Robin
+    path('tournaments/<int:tournament_id>/round_robin/', views.round_robin_table, name='round_robin_table'),
+    path('tournaments/<int:tournament_id>/round_robin_matches/<int:match_id>/update/', views.round_robin_match_result, name='round_robin_match_result'),
 
     # Аутентификация
     path('login/',
@@ -65,22 +74,11 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
     
     # Восстановление пароля
-    path('password_reset/', auth_views.PasswordResetView.as_view(
-        template_name='registration/password_reset_form.html',
-        email_template_name='registration/password_reset_email.html',
-        subject_template_name='registration/password_reset_subject.txt',
-        success_url='/password_reset/done/'
-    ), name='password_reset'),
+    path('password_reset/', views.CustomPasswordResetView.as_view(), name='password_reset'),
     path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(
         template_name='registration/password_reset_done.html'
     ), name='password_reset_done'),
-    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
-        template_name='registration/password_reset_confirm.html',
-        success_url='/reset/done/'
-    ), name='password_reset_confirm'),
-    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
-        template_name='registration/password_reset_completed.html'
-    ), name='password_reset_complete'),
+    path('reset/<uidb64>/<token>/', views.CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 ]
 
 if settings.DEBUG:

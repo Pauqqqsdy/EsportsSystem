@@ -27,17 +27,7 @@ class Tournament(models.Model):
         ('round_robin', 'Round Robin'),
     ]
     
-    TEAM_COUNT_CHOICES = [
-        (2, '2'),
-        (4, '4'),
-        (8, '8'),
-        (16, '16'),
-        (32, '32'),
-        (64, '64'),
-        (128, '128'),
-        (256, '256'),
-        (512, '512'),
-    ]
+    TEAM_COUNT_CHOICES = [(i, str(i)) for i in range(2, 513)]
     
     LOCATION_CHOICES = [
         ('China', 'Китай'),
@@ -93,6 +83,35 @@ class Tournament(models.Model):
     def clean(self):
         if self.start_date and self.start_date < timezone.now():
             raise ValidationError("Невозможно назначить турнир в уже прошедшую дату")
+
+    def get_status(self):
+        """Получить статус турнира"""
+        if not hasattr(self, 'bracket'):
+            return 'planned'
+        
+        # Проверяем, есть ли завершенные матчи
+        total_matches = BracketMatch.objects.filter(stage__bracket=self.bracket).count()
+        completed_matches = BracketMatch.objects.filter(stage__bracket=self.bracket, is_completed=True).count()
+        
+        if completed_matches == 0:
+            return 'planned'
+        elif completed_matches < total_matches:
+            return 'in_progress'
+        else:
+            # Проверяем, завершен ли финал
+            final_stage = self.bracket.stages.filter(name='Финал').first()
+            if final_stage and final_stage.matches.filter(is_completed=True).exists():
+                return 'completed'
+            return 'in_progress'
+
+    def get_status_display(self):
+        """Получить отображаемое название статуса"""
+        status_map = {
+            'planned': 'Запланирован',
+            'in_progress': 'В процессе',
+            'completed': 'Завершён'
+        }
+        return status_map.get(self.get_status(), 'Неизвестно')
 
 
 class TournamentRegistration(models.Model):
@@ -255,27 +274,207 @@ class TournamentBracket(models.Model):
         ('BO5', 'Best of 5'),
     ]
     
+    DISTRIBUTION_CHOICES = [
+        ('random', 'Случайное распределение'),
+        ('manual', 'Ручное распределение'),
+    ]
+    
     tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name='bracket')
+    distribution_type = models.CharField(max_length=20, choices=DISTRIBUTION_CHOICES, default='random')
+    third_place_match = models.BooleanField(default=False, verbose_name="Матч за третье место")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Турнирная сетка'
+        verbose_name_plural = 'Турнирные сетки'
+    
+    def __str__(self):
+        return f"Сетка турнира {self.tournament.name}"
 
 class BracketStage(models.Model):
+    STAGE_TYPE_CHOICES = [
+        ('upper', 'Верхняя сетка'),
+        ('lower', 'Нижняя сетка'),
+        ('final', 'Финал'),
+        ('third_place', 'Матч за 3 место'),
+        ('normal', 'Обычный этап'),
+    ]
+    
     bracket = models.ForeignKey(TournamentBracket, on_delete=models.CASCADE, related_name='stages')
     name = models.CharField(max_length=100)
     format = models.CharField(max_length=3, choices=TournamentBracket.FORMAT_CHOICES, default='BO3')
+    stage_type = models.CharField(max_length=20, choices=STAGE_TYPE_CHOICES, default='normal')
     order = models.PositiveIntegerField()
+    scheduled_time = models.DateTimeField(null=True, blank=True, verbose_name="Запланированное время")
     is_completed = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['order']
+        verbose_name = 'Этап турнира'
+        verbose_name_plural = 'Этапы турнира'
+    
+    def __str__(self):
+        return f"{self.name} - {self.bracket.tournament.name}"
 
 class BracketMatch(models.Model):
     stage = models.ForeignKey(BracketStage, on_delete=models.CASCADE, related_name='matches')
     team1 = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='team1_matches', null=True, blank=True)
     team2 = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='team2_matches', null=True, blank=True)
-    winner = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True)
+    winner = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, blank=True, related_name='won_matches')
+    team1_score = models.PositiveIntegerField(default=0, verbose_name="Счет первой команды")
+    team2_score = models.PositiveIntegerField(default=0, verbose_name="Счет второй команды")
     order = models.PositiveIntegerField()
+    scheduled_time = models.DateTimeField(null=True, blank=True, verbose_name="Запланированное время")
     is_completed = models.BooleanField(default=False)
-
+    is_bye = models.BooleanField(default=False, verbose_name="Проход без игры")
+    
     class Meta:
         ordering = ['order']
+        verbose_name = 'Матч'
+        verbose_name_plural = 'Матчи'
+    
+    def __str__(self):
+        if self.team1 and self.team2:
+            return f"{self.team1.name} vs {self.team2.name}"
+        elif self.team1:
+            return f"{self.team1.name} (проход)"
+        elif self.team2:
+            return f"{self.team2.name} (проход)"
+        return f"Матч #{self.order}"
+    
+    def get_score_display(self):
+        """Получить отображение счета"""
+        if self.is_completed:
+            return f"{self.team1_score}:{self.team2_score}"
+        return "-:-"
+    
+    def clean(self):
+        """Валидация модели"""
+        if self.winner and self.winner not in [self.team1, self.team2]:
+            raise ValidationError("Победитель должен быть одной из команд в матче")
+        
+        if self.is_completed and not self.winner and not self.is_bye:
+            raise ValidationError("Для завершенного матча должен быть указан победитель")
+    
+    def save(self, *args, **kwargs):
+        # Автоматически определяем победителя по счету
+        if self.is_completed and not self.is_bye:
+            if self.team1_score > self.team2_score:
+                self.winner = self.team1
+            elif self.team2_score > self.team1_score:
+                self.winner = self.team2
+        
+        super().save(*args, **kwargs)
+
+
+class RoundRobinTable(models.Model):
+    """Таблица для турнира Round Robin"""
+    tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name='round_robin_table')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Таблица Round Robin'
+        verbose_name_plural = 'Таблицы Round Robin'
+    
+    def __str__(self):
+        return f"Таблица Round Robin - {self.tournament.name}"
+
+
+class RoundRobinResult(models.Model):
+    """Результаты команд в турнире Round Robin"""
+    table = models.ForeignKey(RoundRobinTable, on_delete=models.CASCADE, related_name='results')
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    matches_played = models.PositiveIntegerField(default=0)
+    wins = models.PositiveIntegerField(default=0)
+    losses = models.PositiveIntegerField(default=0)
+    points = models.PositiveIntegerField(default=0)  # Очки (обычно 3 за победу, 1 за ничью, 0 за поражение)
+    map_difference = models.IntegerField(default=0, verbose_name="Разница карт")
+    
+    class Meta:
+        unique_together = ('table', 'team')
+        ordering = ['-points', '-wins', 'losses']
+        verbose_name = 'Результат команды в Round Robin'
+        verbose_name_plural = 'Результаты команд в Round Robin'
+    
+    def __str__(self):
+        return f"{self.team.name} - {self.points} очков"
+    
+    def get_win_rate(self):
+        """Получить процент побед"""
+        if self.matches_played == 0:
+            return 0
+        return round((self.wins / self.matches_played) * 100, 1)
+
+
+class RoundRobinMatch(models.Model):
+    """Матч в турнире Round Robin"""
+    table = models.ForeignKey(RoundRobinTable, on_delete=models.CASCADE, related_name='matches')
+    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='rr_team1_matches')
+    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='rr_team2_matches')
+    winner = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name='rr_won_matches')
+    team1_score = models.PositiveIntegerField(default=0)
+    team2_score = models.PositiveIntegerField(default=0)
+    format = models.CharField(max_length=3, choices=TournamentBracket.FORMAT_CHOICES, default='BO3')
+    scheduled_time = models.DateTimeField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+    round_number = models.PositiveIntegerField(default=1)
+    
+    class Meta:
+        unique_together = ('table', 'team1', 'team2')
+        ordering = ['round_number', 'scheduled_time']
+        verbose_name = 'Матч Round Robin'
+        verbose_name_plural = 'Матчи Round Robin'
+    
+    def __str__(self):
+        return f"{self.team1.name} vs {self.team2.name} (Раунд {self.round_number})"
+    
+    def get_score_display(self):
+        if self.is_completed:
+            return f"{self.team1_score}:{self.team2_score}"
+        return "-:-"
+    
+    def save(self, *args, **kwargs):
+        # Автоматически определяем победителя по счету
+        if self.is_completed:
+            if self.team1_score > self.team2_score:
+                self.winner = self.team1
+            elif self.team2_score > self.team1_score:
+                self.winner = self.team2
+        
+        super().save(*args, **kwargs)
+        
+        # Обновляем результаты в таблице
+        if self.is_completed:
+            self.update_table_results()
+    
+    def update_table_results(self):
+        """Обновить результаты в таблице Round Robin"""
+        # Получаем или создаем результаты для обеих команд
+        result1, created1 = RoundRobinResult.objects.get_or_create(
+            table=self.table, team=self.team1
+        )
+        result2, created2 = RoundRobinResult.objects.get_or_create(
+            table=self.table, team=self.team2
+        )
+        # Если матч уже был учтен, не обновляем статистику повторно
+        if hasattr(self, '_results_updated'):
+            return
+        # Обновляем статистику
+        result1.matches_played += 1
+        result2.matches_played += 1
+        # Разница карт
+        result1.map_difference += self.team1_score - self.team2_score
+        result2.map_difference += self.team2_score - self.team1_score
+        if self.winner == self.team1:
+            result1.wins += 1
+            result1.points += 3
+            result2.losses += 1
+        elif self.winner == self.team2:
+            result2.wins += 1
+            result2.points += 3
+            result1.losses += 1
+        result1.save()
+        result2.save()
+        self._results_updated = True

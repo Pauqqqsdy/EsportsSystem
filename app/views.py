@@ -960,7 +960,7 @@ def round_robin_match_result(request, tournament_id, match_id):
     else:
         form = RoundRobinMatchResultForm(instance=match)
     
-    return render(request, 'tournaments/round_robin_match_result.html', {
+    return render(request, 'app/tournaments/matches/round_robin_match_result.html', {
         'form': form,
         'match': match,
         'tournament': tournament

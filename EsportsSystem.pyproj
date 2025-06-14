@@ -89,7 +89,6 @@
     <Content Include="app\templates\app\tournaments\manual_bracket_setup.html" />
     <Content Include="app\templates\app\tournaments\matches\advanced_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\edit_match_schedule.html" />
-    <Content Include="app\templates\app\tournaments\round_robin_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\tournament_matches.html" />
     <Content Include="app\templates\app\tournaments\matches\update_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\match_detail.html" />
@@ -98,7 +97,6 @@
     <Content Include="app\templates\app\tournaments\round_robin_table.html" />
     <Content Include="app\templates\app\tournaments\tournament_bracket.html" />
     <Content Include="app\templates\app\tournaments\tournament_detail.html" />
-    <Content Include="app\templates\app\tournaments\update_match_result.html" />
     <Content Include="app\templates\registration\password_reset_done.html" />
     <Content Include="app\templates\registration\password_reset_email.html" />
     <Content Include="app\templates\registration\password_reset_email.txt" />

@@ -476,12 +476,35 @@ def participate_tournament(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user_profile = request.user.userprofile
     
+    # Проверяем, есть ли уже сформированная сетка
+    if hasattr(tournament, 'bracket') or hasattr(tournament, 'round_robin_table'):
+        messages.error(request, 'Нельзя зарегистрироваться на турнир, так как турнирная сетка уже сформирована')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
     if tournament.game_format == '1x1':
-        existing_registration = tournament.registered_teams.filter(
-            Q(captain=request.user) | Q(members=request.user)
-        ).first()
+        # Проверяем, есть ли у пользователя команда
+        team = user_profile.team
+        if not team:
+            # Проверяем, есть ли команда с таким именем и капитаном этим пользователем
+            from app.models import Team
+            team_qs = Team.objects.filter(name=request.user.username)
+            if team_qs.exists():
+                team_obj = team_qs.first()
+                if team_obj.captain == request.user:
+                    team = team_obj
+                else:
+                    messages.error(request, 'Команда с вашим никнеймом уже существует и принадлежит другому пользователю. Пожалуйста, измените никнейм или обратитесь к администратору.')
+                    return redirect('tournament_detail', tournament_id=tournament.id)
+            else:
+                team = Team.objects.create(
+                    name=request.user.username,
+                    captain=request.user
+                )
+            user_profile.team = team
+            user_profile.save()
         
-        if existing_registration:
+        # Проверяем, не зарегистрирован ли уже пользователь
+        if tournament.is_registered(team):
             messages.warning(request, 'Вы уже зарегистрированы на этот турнир')
             return redirect('tournament_detail', tournament_id=tournament.id)
         
@@ -489,26 +512,11 @@ def participate_tournament(request, tournament_id):
             messages.error(request, 'Турнир уже заполнен')
             return redirect('tournament_detail', tournament_id=tournament.id)
         
-        # Проверяем, есть ли уже команда с таким именем
-        team, created = Team.objects.get_or_create(
-            name=request.user.username,
-            defaults={'captain': request.user}
-        )
-        
-        # Если команда уже существует, но капитан другой - создаем уникальное имя
-        if not created and team.captain != request.user:
-            # Создаем уникальное имя для команды
-            base_name = request.user.username
-            counter = 1
-            while Team.objects.filter(name=f"{base_name}_{counter}").exists():
-                counter += 1
-            
-            team = Team.objects.create(
-                name=f"{base_name}_{counter}",
-                captain=request.user
-            )
-        
+        # Регистрируем команду на турнир
         tournament.registered_teams.add(team)
+        registration = TournamentRegistration.objects.get(tournament=tournament, team=team)
+        registration.players.add(request.user)
+        
         messages.success(request, 'Вы успешно зарегистрированы на турнир!')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
@@ -828,6 +836,11 @@ def cancel_tournament_participation(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user_profile = request.user.userprofile
 
+    # Проверяем, есть ли уже сформированная сетка
+    if hasattr(tournament, 'bracket') or hasattr(tournament, 'round_robin_table'):
+        messages.error(request, 'Нельзя отменить участие в турнире, так как турнирная сетка уже сформирована')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+
     if tournament.game_format == '1x1':
         user_team = tournament.registered_teams.filter(captain=request.user).first()
         if not user_team:
@@ -941,6 +954,45 @@ def advanced_match_result(request, tournament_id, match_id):
         'match': match
     })
 
+def update_round_robin_results(match):
+    """Обновляет результаты турнирной таблицы после изменения результата матча"""
+    # Получаем результаты команд
+    team1_result = RoundRobinResult.objects.get(
+        table=match.table,
+        team=match.team1
+    )
+    team2_result = RoundRobinResult.objects.get(
+        table=match.table,
+        team=match.team2
+    )
+    
+    # Сбрасываем статистику
+    team1_result.wins = 0
+    team1_result.losses = 0
+    team1_result.points = 0
+    team2_result.wins = 0
+    team2_result.losses = 0
+    team2_result.points = 0
+    
+    # Пересчитываем статистику для всех матчей
+    for m in RoundRobinMatch.objects.filter(table=match.table):
+        if m.team1_score is not None and m.team2_score is not None:  # Проверяем наличие результата
+            if m.team1_score > m.team2_score:
+                team1_result.wins += 1
+                team1_result.points += 3
+                team2_result.losses += 1
+            elif m.team1_score < m.team2_score:
+                team2_result.wins += 1
+                team2_result.points += 3
+                team1_result.losses += 1
+            else:
+                team1_result.points += 1
+                team2_result.points += 1
+    
+    # Сохраняем обновленные результаты
+    team1_result.save()
+    team2_result.save()
+
 @login_required
 def round_robin_match_result(request, tournament_id, match_id):
     match = get_object_or_404(RoundRobinMatch, id=match_id)
@@ -952,19 +1004,33 @@ def round_robin_match_result(request, tournament_id, match_id):
         return redirect('tournament_detail', tournament_id=tournament_id)
     
     if request.method == 'POST':
-        form = RoundRobinMatchResultForm(request.POST, instance=match)
-        if form.is_valid():
-            form.save()
+        # Получаем счет из POST данных
+        score = None
+        if match.format == 'BO1':
+            score = request.POST.get('bo1_score')
+        elif match.format == 'BO3':
+            score = request.POST.get('bo3_score')
+        elif match.format == 'BO5':
+            score = request.POST.get('bo5_score')
+        
+        if score:
+            # Разбиваем счет на победы каждой команды
+            team1_score, team2_score = map(int, score.split('-'))
+            
+            # Обновляем результат матча
+            match.team1_score = team1_score
+            match.team2_score = team2_score
+            match.is_completed = True
+            match.save()
+            
+            # Обновляем результаты в таблице
+            update_round_robin_results(match)
+            
             messages.success(request, 'Результат матча успешно обновлен')
-            return redirect('tournament_detail', tournament_id=tournament_id)
-    else:
-        form = RoundRobinMatchResultForm(instance=match)
+        else:
+            messages.error(request, 'Неверный формат счета')
     
-    return render(request, 'app/tournaments/matches/round_robin_match_result.html', {
-        'form': form,
-        'match': match,
-        'tournament': tournament
-    })
+    return redirect('round_robin_table', tournament_id=tournament_id)
 
 @login_required
 def round_robin_table(request, tournament_id):
@@ -1103,37 +1169,37 @@ def edit_match_schedule(request, tournament_id, match_id):
 
 @login_required
 def generate_round_robin(request, tournament_id):
+    """Генерирует матчи для турнира в формате Round Robin"""
     tournament = get_object_or_404(Tournament, id=tournament_id)
     
-    if not tournament.is_creator(request.user):
-        messages.error(request, 'Только создатель турнира может формировать сетку')
-        return redirect('tournament_detail', tournament_id=tournament.id)
+    # Проверяем, является ли пользователь создателем турнира
+    if request.user != tournament.creator:
+        messages.error(request, 'Только создатель турнира может генерировать матчи')
+        return redirect('tournament_detail', tournament_id=tournament_id)
     
-    if request.method == 'POST':
-        match_format = request.POST.get('match_format', 'BO1')
-        
-        # Получаем все команды турнира
-        teams = list(tournament.teams.all())
-        
-        if len(teams) < 2:
-            messages.error(request, 'Для формирования сетки необходимо минимум 2 команды')
-            return redirect('tournament_detail', tournament_id=tournament.id)
-        
-        # Создаем все возможные пары команд
-        for i in range(len(teams)):
-            for j in range(i + 1, len(teams)):
-                match = RoundRobinMatch.objects.create(
-                    round_robin_tournament=tournament,
-                    team1=teams[i],
-                    team2=teams[j],
-                    format=match_format,
-                    is_completed=False
-                )
-        
-        messages.success(request, 'Турнирная сетка успешно сформирована')
-        return redirect('round_robin_table', tournament_id=tournament.id)
+    # Проверяем формат турнира
+    if tournament.format != 'round_robin':
+        messages.error(request, 'Эта функция доступна только для турниров в формате Round Robin')
+        return redirect('tournament_detail', tournament_id=tournament_id)
     
-    return redirect('tournament_detail', tournament_id=tournament.id)
+    # Проверяем, есть ли уже сгенерированные матчи
+    if hasattr(tournament, 'round_robin_table'):
+        messages.error(request, 'Матчи для этого турнира уже сгенерированы')
+        return redirect('tournament_detail', tournament_id=tournament_id)
+    
+    # Проверяем, есть ли хотя бы 2 команды
+    if tournament.teams.count() < 2:
+        messages.error(request, 'Для генерации матчей необходимо минимум 2 команды')
+        return redirect('tournament_detail', tournament_id=tournament_id)
+    
+    try:
+        # Создаем турнирную таблицу и матчи
+        table = create_round_robin_bracket(tournament)
+        messages.success(request, 'Матчи успешно сгенерированы')
+        return redirect('round_robin_table', tournament_id=tournament_id)
+    except Exception as e:
+        messages.error(request, f'Ошибка при генерации матчей: {str(e)}')
+        return redirect('tournament_detail', tournament_id=tournament_id)
 
 @login_required
 def edit_tournament_roster(request, tournament_id):

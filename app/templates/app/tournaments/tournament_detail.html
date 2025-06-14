@@ -385,6 +385,7 @@
                 <!-- Участие -->
                 <div class="mt-4">
                     {% if user.is_authenticated %}
+                    {% if not tournament.bracket and not tournament.round_robin_table %}
                     {% if is_registered %}
                     {% if tournament.game_format == '1x1' %}
                     <form action="{% url 'cancel_tournament_participation' tournament_id=tournament.id %}" method="post">
@@ -424,6 +425,12 @@
                     {% endif %}
                     {% else %}
                     <div class="alert alert-danger">Турнир уже заполнен</div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Регистрация закрыта, так как турнирная сетка уже сформирована
+                    </div>
                     {% endif %}
                     {% else %}
                     <div class="alert alert-info">

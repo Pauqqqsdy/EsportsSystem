@@ -89,6 +89,7 @@
     <Content Include="app\templates\app\tournaments\manual_bracket_setup.html" />
     <Content Include="app\templates\app\tournaments\matches\advanced_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\edit_match_schedule.html" />
+    <Content Include="app\templates\app\tournaments\matches\round_robin_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\tournament_matches.html" />
     <Content Include="app\templates\app\tournaments\matches\update_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\match_detail.html" />

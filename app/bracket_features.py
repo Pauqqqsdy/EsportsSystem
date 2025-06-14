@@ -147,39 +147,48 @@ def create_double_elimination_bracket(tournament, teams, distribution_type='rand
         return bracket
 
 
-def create_round_robin_bracket(tournament, teams, default_format='BO3'):
-    """Создает турнирную таблицу Round Robin"""
+def create_round_robin_bracket(tournament, teams=None):
+    """Создает турнирную таблицу и матчи для формата Round Robin"""
+    # Удаляем существующую таблицу, если она есть
+    RoundRobinTable.objects.filter(tournament=tournament).delete()
     
-    with transaction.atomic():
-        # Удаляем существующую таблицу если есть
-        if hasattr(tournament, 'round_robin_table'):
-            tournament.round_robin_table.delete()
-        
-        # Создаем новую таблицу
-        table = RoundRobinTable.objects.create(tournament=tournament)
-        
-        # Создаем результаты для всех команд
-        for team in teams:
-            RoundRobinResult.objects.create(table=table, team=team)
-        
-        # Создаем все возможные матчи
-        teams_list = list(teams)
-        current_time = tournament.start_date
-        
-        # Генерируем матчи по круговой системе
-        for i in range(len(teams_list)):
-            for j in range(i + 1, len(teams_list)):
-                RoundRobinMatch.objects.create(
-                    table=table,
-                    team1=teams_list[i],
-                    team2=teams_list[j],
-                    format=default_format,
-                    scheduled_time=current_time,
-                    round_number=1
-                )
-                current_time += timedelta(hours=1)  # 1 час между матчами
-        
-        return table
+    # Создаем новую таблицу
+    table = RoundRobinTable.objects.create(tournament=tournament)
+    
+    # Получаем команды турнира, если они не переданы
+    if teams is None:
+        teams = tournament.teams.all()
+    
+    # Создаем результаты для всех команд
+    for team in teams:
+        RoundRobinResult.objects.create(
+            table=table,
+            team=team,
+            wins=0,
+            losses=0,
+            points=0
+        )
+    
+    # Определяем формат матча на основе формата турнира
+    match_format = 'BO1'  # По умолчанию
+    if tournament.tournament_format == 'BO3':
+        match_format = 'BO3'
+    elif tournament.tournament_format == 'BO5':
+        match_format = 'BO5'
+    
+    # Создаем все возможные пары матчей
+    for i, team1 in enumerate(teams):
+        for team2 in teams[i+1:]:
+            # Создаем матч
+            match = RoundRobinMatch.objects.create(
+                table=table,
+                team1=team1,
+                team2=team2,
+                scheduled_time=timezone.now() + timezone.timedelta(hours=len(RoundRobinMatch.objects.filter(table=table))),
+                format=match_format
+            )
+    
+    return table
 
 
 def create_upper_bracket(bracket, teams, start_time, stage_formats=None):

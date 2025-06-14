@@ -86,23 +86,30 @@ class Tournament(models.Model):
 
     def get_status(self):
         """Получить статус турнира"""
-        if not hasattr(self, 'bracket'):
-            return 'planned'
-        
-        # Проверяем, есть ли завершенные матчи
-        total_matches = BracketMatch.objects.filter(stage__bracket=self.bracket).count()
-        completed_matches = BracketMatch.objects.filter(stage__bracket=self.bracket, is_completed=True).count()
-        
-        if completed_matches == 0:
-            return 'planned'
-        elif completed_matches < total_matches:
-            return 'in_progress'
-        else:
-            # Проверяем, завершен ли финал
-            final_stage = self.bracket.stages.filter(name='Финал').first()
-            if final_stage and final_stage.matches.filter(is_completed=True).exists():
+        # Если турнир в формате Round Robin
+        if hasattr(self, 'round_robin_table'):
+            # Проверяем, есть ли завершенные матчи
+            total_matches = RoundRobinMatch.objects.filter(table=self.round_robin_table).count()
+            completed_matches = RoundRobinMatch.objects.filter(table=self.round_robin_table, is_completed=True).count()
+            
+            if completed_matches == total_matches and total_matches > 0:
                 return 'completed'
-            return 'in_progress'
+            else:
+                return 'in_progress'
+        
+        # Если турнир в формате со скобками
+        if hasattr(self, 'bracket'):
+            # Проверяем, есть ли завершенные матчи
+            total_matches = BracketMatch.objects.filter(stage__bracket=self.bracket).count()
+            completed_matches = BracketMatch.objects.filter(stage__bracket=self.bracket, is_completed=True).count()
+            
+            if completed_matches == total_matches and total_matches > 0:
+                return 'completed'
+            else:
+                return 'in_progress'
+        
+        # Если турнирная сетка не сформирована
+        return 'planned'
 
     def get_status_display(self):
         """Получить отображаемое название статуса"""
@@ -448,6 +455,16 @@ class RoundRobinMatch(models.Model):
         # Обновляем результаты в таблице
         if self.is_completed:
             self.update_table_results()
+            
+            # Проверяем, все ли матчи завершены
+            total_matches = RoundRobinMatch.objects.filter(table=self.table).count()
+            completed_matches = RoundRobinMatch.objects.filter(table=self.table, is_completed=True).count()
+            
+            # Обновляем статус турнира
+            tournament = self.table.tournament
+            if completed_matches == total_matches:
+                tournament.is_active = False
+                tournament.save()
     
     def update_table_results(self):
         """Обновить результаты в таблице Round Robin"""

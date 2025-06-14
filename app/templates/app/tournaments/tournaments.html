@@ -75,8 +75,9 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
         }
+
     .tournaments-container {
-        background: linear-gradient(145deg, #1a1a2e, #161b2e, #0f0f1c); 
+        background: linear-gradient(145deg, #1a1a2e, #161b2e, #0f0f1c);
         padding: 20px;
         border-radius: 12px;
         box-shadow: 0 0 20px rgba(76, 201, 240, 0.1);
@@ -156,7 +157,8 @@
         margin-top: 20px;
         text-align: center;
     }
-    p.text-muted{
+
+    p.text-muted {
         color: #e6e6e6 !important
     }
 </style>
@@ -249,11 +251,12 @@
                                     <div class="tournament-tag">{{ t.get_location_display }}</div>
                                     <!-- Статус турнира -->
                                     <div class="d-flex align-items-center my-2">
-                                        {% if t.start_date > timezone.now %}
-                                        <span class="status-badge status-upcoming">Запланирован</span>
-                                        {% else %}
-                                        <span class="status-badge status-in-progress">В процессе</span>
-                                        {% endif %}
+                                        <span class="status-badge
+                                            {% if t.get_status == 'planned' %}status-upcoming
+                                            {% elif t.get_status == 'in_progress' %}status-in-progress
+                                            {% elif t.get_status == 'completed' %}status-completed{% endif %}">
+                                            {{ t.get_status_display }}
+                                        </span>
                                     </div>
                                     <!-- Участники -->
                                     <div class="tournament-meta">Участников: {{ t.registered_teams_count }}/{{ t.max_teams }}</div>

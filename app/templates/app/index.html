@@ -22,30 +22,30 @@
         border-right: 1px solid #2d2d42;
     }
 
-    .sidebar h5 {
-        margin-bottom: 1.5rem;
-        color: #e6e6e6;
-    }
+        .sidebar h5 {
+            margin-bottom: 1.5rem;
+            color: #e6e6e6;
+        }
 
-    .sidebar a {
-        color: #e6e6e6;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        text-decoration: none;
-        width: 100%;
-        padding: 10px;
-        transition: background-color 0.3s;
-    }
+        .sidebar a {
+            color: #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-decoration: none;
+            width: 100%;
+            padding: 10px;
+            transition: background-color 0.3s;
+        }
 
-    .sidebar a span {
-        text-align: center;
-    }
+            .sidebar a span {
+                text-align: center;
+            }
 
-    .sidebar a:hover {
-        background-color: #2d2d42;
-        border-radius: 8px;
-    }
+            .sidebar a:hover {
+                background-color: #2d2d42;
+                border-radius: 8px;
+            }
 
     .game-icon {
         width: 60px;
@@ -61,13 +61,13 @@
         border-bottom: 1px solid #2d2d42;
     }
 
-    .header h1 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: #4cc9f0;
-        text-align: center;
-        text-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
-    }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #4cc9f0;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+        }
 
     /* Карточки турниров */
     .tournament-card {
@@ -80,11 +80,11 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
-    .tournament-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 25px rgba(76, 201, 240, 0.3);
-        border-left-color: #f72585;
-    }
+        .tournament-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 25px rgba(76, 201, 240, 0.3);
+            border-left-color: #f72585;
+        }
 
     .tournament-img {
         width: 100%;
@@ -107,9 +107,9 @@
     }
 
     .tournament-title {
-        font-size: 1.1rem; 
+        font-size: 1.1rem;
         font-weight: bold;
-        color: #ffffff; 
+        color: #ffffff;
     }
 
     .tournament-meta {
@@ -140,12 +140,12 @@
         letter-spacing: 0.5px;
     }
 
-    .btn-info:hover {
-        background-color: #3aa7cc !important;
-        border-color: #3aa7cc !important;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(76, 201, 240, 0.4);
-    }
+        .btn-info:hover {
+            background-color: #3aa7cc !important;
+            border-color: #3aa7cc !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 201, 240, 0.4);
+        }
 
     /* Иконка игры в карточке */
     .tournament-game {
@@ -173,7 +173,7 @@
     }
 
     .main-content {
-        margin-left: 220px; 
+        margin-left: 220px;
     }
 </style>
 
@@ -252,6 +252,22 @@
                                     <i class="fas fa-map-marker-alt me-1"></i>
                                     {{ t.get_location_display }}
                                 </span>
+                            </div>
+
+                            <!-- Статус турнира -->
+                            <div class="mb-3">
+                                <span class="badge
+                                    {% if t.get_status == 'planned' %}bg-warning text-dark
+                                    {% elif t.get_status == 'in_progress' %}bg-success
+                                    {% elif t.get_status == 'completed' %}bg-secondary{% endif %}">
+                                    {{ t.get_status_display }}
+                                </span>
+                            </div>
+
+                            <!-- Участники -->
+                            <div class="tournament-meta">
+                                <i class="fas fa-users me-1"></i>
+                                {{ t.registered_teams_count }}/{{ t.max_teams }} участников
                             </div>
 
                             <!-- Кнопка подробнее -->

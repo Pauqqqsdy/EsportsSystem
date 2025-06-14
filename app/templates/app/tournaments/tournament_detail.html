@@ -341,10 +341,22 @@
                     <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-primary mb-2">
                         Редактировать турнир
                     </a>
-                    {% if not tournament.bracket %}
-                    <a href="{% url 'generate_bracket' tournament_id=tournament.id %}" class="btn btn-primary">
-                        Сформировать сетку
-                    </a>
+                    {% if tournament.status == 'scheduled' and tournament.organizer == request.user %}
+                    <div class="mb-4">
+                        {% if tournament.bracket_type == 'single_elimination' %}
+                        {% if not tournament.bracket %}
+                        <a href="{% url 'generate_bracket' tournament.id %}" class="btn btn-primary">Сформировать турнирную сетку</a>
+                        {% endif %}
+                        {% elif tournament.bracket_type == 'double_elimination' %}
+                        {% if not tournament.bracket %}
+                        <a href="{% url 'generate_double_elimination_bracket' tournament.id %}" class="btn btn-primary">Сформировать турнирную сетку</a>
+                        {% endif %}
+                        {% elif tournament.bracket_type == 'round_robin' %}
+                        {% if not tournament.round_robin_matches.exists %}
+                        <a href="{% url 'generate_round_robin' tournament.id %}" class="btn btn-primary">Сформировать турнирную сетку</a>
+                        {% endif %}
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
                 {% endif %}

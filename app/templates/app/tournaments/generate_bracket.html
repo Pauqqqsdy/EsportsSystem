@@ -35,7 +35,8 @@
                     <form method="post">
                         {% csrf_token %}
 
-                        <!-- Способ формирования сетки -->
+                        <!-- Способ формирования сетки (только для Single и Double Elimination) -->
+                        {% if tournament.bracket_type != 'round_robin' %}
                         <div class="mb-4">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-random me-1 text-primary"></i>
@@ -45,6 +46,7 @@
                                 {{ form.generation_type }}
                             </div>
                         </div>
+                        {% endif %}
 
                         <!-- Матч за третье место (для Single Elimination) -->
                         {% if form.third_place_match %}

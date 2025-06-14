@@ -1004,31 +1004,53 @@ def advanced_match_result(request, tournament_id, match_id):
     })
 
 @login_required
-def round_robin_match_result(request, tournament_id, match_id):
-    """Обновление результатов матча Round Robin"""
-    tournament = get_object_or_404(Tournament, id=tournament_id)
-    match = get_object_or_404(RoundRobinMatch, id=match_id, table__tournament=tournament)
-    
-    if not tournament.is_creator(request.user):
-        messages.error(request, 'Только создатель турнира может обновлять результаты')
-        return redirect('round_robin_table', tournament_id=tournament.id)
+def round_robin_match_result(request, match_id):
+    match = get_object_or_404(RoundRobinMatch, id=match_id)
+    tournament = match.round_robin_tournament  # Используем правильное поле для связи с турниром
     
     if request.method == 'POST':
+        # Для BO1 обрабатываем select bo1_score
+        if match.format == 'BO1' and 'bo1_score' in request.POST:
+            bo1_score = request.POST.get('bo1_score')
+            if bo1_score == '1-0':
+                request.POST = request.POST.copy()
+                request.POST['team1_score'] = 1
+                request.POST['team2_score'] = 0
+            elif bo1_score == '0-1':
+                request.POST = request.POST.copy()
+                request.POST['team1_score'] = 0
+                request.POST['team2_score'] = 1
+        # Для BO3 обрабатываем select bo3_score
+        elif match.format == 'BO3' and 'bo3_score' in request.POST:
+            bo3_score = request.POST.get('bo3_score')
+            request.POST = request.POST.copy()
+            team1_score, team2_score = map(int, bo3_score.split('-'))
+            request.POST['team1_score'] = team1_score
+            request.POST['team2_score'] = team2_score
+        # Для BO5 обрабатываем select bo5_score
+        elif match.format == 'BO5' and 'bo5_score' in request.POST:
+            bo5_score = request.POST.get('bo5_score')
+            request.POST = request.POST.copy()
+            team1_score, team2_score = map(int, bo5_score.split('-'))
+            request.POST['team1_score'] = team1_score
+            request.POST['team2_score'] = team2_score
+            
         form = RoundRobinMatchResultForm(request.POST, instance=match)
         if form.is_valid():
-            match = form.save(commit=False)
-            match.is_completed = True
-            match.save()
-            
-            messages.success(request, 'Результат матча обновлен')
-            return redirect('round_robin_table', tournament_id=tournament.id)
+            form.save()
+            # Обновляем статус турнира на "в процессе" после первого сыгранного матча
+            if tournament.status == 'scheduled':
+                tournament.status = 'in_progress'
+                tournament.save()
+            messages.success(request, 'Результат матча успешно сохранен')
+            return redirect('tournament_detail', tournament_id=tournament.id)
     else:
         form = RoundRobinMatchResultForm(instance=match)
     
     return render(request, 'app/tournaments/round_robin_match_result.html', {
         'form': form,
-        'tournament': tournament,
-        'match': match
+        'match': match,
+        'tournament': tournament
     })
 
 @login_required
@@ -1165,4 +1187,38 @@ def edit_match_schedule(request, tournament_id, match_id):
         'match': match,
         'match_type': match_type
     })
+
+@login_required
+def generate_round_robin(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может формировать сетку')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
+    if request.method == 'POST':
+        match_format = request.POST.get('match_format', 'BO1')
+        
+        # Получаем все команды турнира
+        teams = list(tournament.teams.all())
+        
+        if len(teams) < 2:
+            messages.error(request, 'Для формирования сетки необходимо минимум 2 команды')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+        
+        # Создаем все возможные пары команд
+        for i in range(len(teams)):
+            for j in range(i + 1, len(teams)):
+                match = RoundRobinMatch.objects.create(
+                    round_robin_tournament=tournament,
+                    team1=teams[i],
+                    team2=teams[j],
+                    format=match_format,
+                    is_completed=False
+                )
+        
+        messages.success(request, 'Турнирная сетка успешно сформирована')
+        return redirect('round_robin_table', tournament_id=tournament.id)
+    
+    return redirect('tournament_detail', tournament_id=tournament.id)
 

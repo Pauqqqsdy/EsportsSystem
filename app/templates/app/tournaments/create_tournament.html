@@ -26,6 +26,17 @@
                             {% endif %}
                         </div>
 
+                        <!-- Формат турнира -->
+                        <div class="mb-3">
+                            <label for="{{ form.tournament_format.id_for_label }}" class="form-label">
+                                <i class="fas fa-sitemap me-1"></i>Формат турнира*
+                            </label>
+                            {{ form.tournament_format }}
+                            {% if form.tournament_format.errors %}
+                            <div class="invalid-feedback d-block">{{ form.tournament_format.errors }}</div>
+                            {% endif %}
+                        </div>
+
                         <!-- Максимальное количество команд -->
                         <div class="mb-3">
                             <label for="{{ form.max_teams.id_for_label }}" class="form-label">
@@ -67,17 +78,6 @@
                             {{ form.game_format }}
                             {% if form.game_format.errors %}
                             <div class="invalid-feedback d-block">{{ form.game_format.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Формат турнира -->
-                        <div class="mb-3">
-                            <label for="{{ form.tournament_format.id_for_label }}" class="form-label">
-                                <i class="fas fa-sitemap me-1"></i>Формат турнира*
-                            </label>
-                            {{ form.tournament_format }}
-                            {% if form.tournament_format.errors %}
-                            <div class="invalid-feedback d-block">{{ form.tournament_format.errors }}</div>
                             {% endif %}
                         </div>
 

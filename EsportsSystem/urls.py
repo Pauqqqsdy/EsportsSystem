@@ -57,7 +57,7 @@ urlpatterns = [
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/advanced_update/', views.advanced_match_result, name='advanced_match_result'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/schedule/', views.edit_match_schedule, name='edit_match_schedule'),
     
-    # Round Robin
+    # Round Robin формат
     path('tournaments/<int:tournament_id>/round_robin/', views.round_robin_table, name='round_robin_table'),
     path('tournaments/<int:tournament_id>/round_robin_matches/<int:match_id>/update/', views.round_robin_match_result, name='round_robin_match_result'),
 

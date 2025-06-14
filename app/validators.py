@@ -21,4 +21,4 @@ class CombinedPasswordValidator:
             raise ValidationError(errors)
     
     def get_help_text(self):
-        return "Пароль должен содержать минимум 8 символов и не быть слишком простым."
+        return ""

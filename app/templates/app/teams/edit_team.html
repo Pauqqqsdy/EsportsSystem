@@ -151,13 +151,13 @@
                     </h4>
 
                     <!-- Отображение текущего аватара -->
-                    <div class="text-center mb-4">
+                    <div class="text-center mb-3">
                         <h5 class="mb-3">
                             <i class="fas fa-image me-2"></i>Текущий аватар команды:
                         </h5>
                         <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}{% static 'team_avatars/default.jpg' %}{% endif %}"
                              alt="Аватар команды"
-                             class="img-fluid rounded shadow"
+                             class="img-fluid rounded-circle mb-4"
                              style="width: 150px; height: 150px; object-fit: cover;">
                     </div>
 

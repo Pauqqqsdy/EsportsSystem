@@ -144,10 +144,10 @@
         <!-- Левая колонка -->
         <div class="col-md-8">
             <!-- Заголовок команды с аватаром -->
-            <div class="d-flex align-items-center mb-3">
+            <div class="align-items-center mb-3">
                 <img src="{% if team.avatar %}{{ team.avatar.url }}{% else %}/media/team_avatars/default.jpg{% endif %}"
-                     alt="{{ team.name }}"
-                     style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%;">
+                     class="img-fluid rounded-circle mb-4"
+                     style="width: 150px; height: 150px; object-fit: cover;">
                 <h1 class="mb-0 ms-3">{{ team.name }}</h1>
             </div>
 

@@ -213,7 +213,7 @@
                 <a href="{% url 'edit_tournament' tournament_id=tournament.id %}" class="btn btn-primary me-2">
                     Редактировать турнир
                 </a>
-                {% if not tournament.bracket %}
+                {% if not tournament.bracket and not tournament.round_robin_table %}
                 <a href="{% url 'generate_bracket' tournament_id=tournament.id %}" class="btn btn-primary">
                     Сформировать сетку
                 </a>

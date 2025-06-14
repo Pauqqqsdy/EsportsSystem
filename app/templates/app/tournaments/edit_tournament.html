@@ -300,7 +300,14 @@ function confirmRemoveTeam(teamId, teamName) {
                 'Content-Type': 'application/json',
             },
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Произошла ошибка при удалении команды');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 location.reload();
@@ -309,13 +316,13 @@ function confirmRemoveTeam(teamId, teamName) {
             }
         })
         .catch(error => {
-            alert('Произошла ошибка: ' + error);
+            alert(error.message || 'Произошла ошибка при удалении команды');
         });
     }
 }
 
 function confirmDeleteTournament() {
-    if (confirm('Вы уверены, что хотите удалить этот турнир? Это действие нельзя отменить.')) {
+    if (confirm('Вы уверены, что хотите удалить турнир? Это действие нельзя отменить.')) {
         fetch(`/tournaments/{{ tournament.id }}/delete/`, {
             method: 'POST',
             headers: {

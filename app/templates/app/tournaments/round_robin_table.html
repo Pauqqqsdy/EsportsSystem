@@ -131,24 +131,24 @@
                                                 {% csrf_token %}
                                                 {% if match.format == 'BO1' %}
                                                 <select name="bo1_score" class="form-select form-select-sm" style="width: 110px;">
-                                                    <option value="1-0" {% if match.team1_score == 1 and match.team2_score == 0 %}selected{% endif %}>1-0</option>
-                                                    <option value="0-1" {% if match.team1_score == 0 and match.team2_score == 1 %}selected{% endif %}>0-1</option>
+                                                    <option value="1-0">1-0</option>
+                                                    <option value="0-1">0-1</option>
                                                 </select>
                                                 {% elif match.format == 'BO3' %}
                                                 <select name="bo3_score" class="form-select form-select-sm" style="width: 110px;">
-                                                    <option value="2-0" {% if match.team1_score == 2 and match.team2_score == 0 %}selected{% endif %}>2-0</option>
-                                                    <option value="0-2" {% if match.team1_score == 0 and match.team2_score == 2 %}selected{% endif %}>0-2</option>
-                                                    <option value="2-1" {% if match.team1_score == 2 and match.team2_score == 1 %}selected{% endif %}>2-1</option>
-                                                    <option value="1-2" {% if match.team1_score == 1 and match.team2_score == 2 %}selected{% endif %}>1-2</option>
+                                                    <option value="2-0">2-0</option>
+                                                    <option value="0-2">0-2</option>
+                                                    <option value="2-1">2-1</option>
+                                                    <option value="1-2">1-2</option>
                                                 </select>
                                                 {% elif match.format == 'BO5' %}
                                                 <select name="bo5_score" class="form-select form-select-sm" style="width: 110px;">
-                                                    <option value="3-0" {% if match.team1_score == 3 and match.team2_score == 0 %}selected{% endif %}>3-0</option>
-                                                    <option value="0-3" {% if match.team1_score == 0 and match.team2_score == 3 %}selected{% endif %}>0-3</option>
-                                                    <option value="3-1" {% if match.team1_score == 3 and match.team2_score == 1 %}selected{% endif %}>3-1</option>
-                                                    <option value="1-3" {% if match.team1_score == 1 and match.team2_score == 3 %}selected{% endif %}>1-3</option>
-                                                    <option value="3-2" {% if match.team1_score == 3 and match.team2_score == 2 %}selected{% endif %}>3-2</option>
-                                                    <option value="2-3" {% if match.team1_score == 2 and match.team2_score == 3 %}selected{% endif %}>2-3</option>
+                                                    <option value="3-0">3-0</option>
+                                                    <option value="0-3">0-3</option>
+                                                    <option value="3-1">3-1</option>
+                                                    <option value="1-3">1-3</option>
+                                                    <option value="3-2">3-2</option>
+                                                    <option value="2-3">2-3</option>
                                                 </select>
                                                 {% endif %}
                                                 <button type="submit" class="btn btn-success btn-sm ms-2">Сохранить</button>
@@ -214,25 +214,34 @@
 
             <!-- Предстоящие матчи -->
             {% if upcoming_matches %}
-            <div class="card">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h6 class="mb-0">
                         <i class="fas fa-clock me-2"></i>
                         Предстоящие матчи
                     </h6>
                 </div>
-                <div class="card-body">
-                    {% for match in upcoming_matches %}
-                    <div class="mb-3 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
-                        <div class="small text-muted mb-1">
-                            <i class="fas fa-calendar me-1"></i>
-                            {{ match.scheduled_time|date:"d.m H:i" }}
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for match in upcoming_matches %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold">{{ match.team1.name }}</div>
+                                    <div class="fw-bold">{{ match.team2.name }}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small">
+                                        {{ match.scheduled_time|date:"d.m.Y" }}
+                                    </div>
+                                    <div class="text-muted small">
+                                        {{ match.scheduled_time|date:"H:i" }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="fw-bold small">
-                            {{ match.team1.name }} vs {{ match.team2.name }}
-                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
             {% endif %}
@@ -256,7 +265,7 @@
 
             {% if tournament.status == 'scheduled' and tournament.organizer == request.user %}
             <div class="mb-4">
-                {% if not tournament.round_robin_matches.exists %}
+                {% if not tournament.round_robin_matches.exists and not tournament.bracket %}
                 <form method="post" action="{% url 'generate_round_robin' tournament.id %}" class="mb-3">
                     {% csrf_token %}
                     <div class="mb-3">
@@ -275,23 +284,14 @@
         </div>
     </div>
     {% else %}
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card text-center">
-                <div class="card-body py-5">
-                    <i class="fas fa-table fa-4x text-muted mb-4"></i>
-                    <h4 class="text-muted mb-3">Турнирная таблица не создана</h4>
-                    <p class="text-muted mb-4">
-                        Для создания турнирной таблицы нужно сформировать сетку турнира.
-                    </p>
-                    {% if is_creator %}
-                    <a href="{% url 'generate_bracket' tournament.id %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Сформировать таблицу
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+    <div class="text-center py-5">
+        <i class="fas fa-table fa-3x text-muted mb-3"></i>
+        <h3 class="text-muted">Турнирная таблица еще не создана</h3>
+        {% if is_creator %}
+        <p class="text-muted">Нажмите кнопку "Сформировать таблицу" для создания турнирной сетки</p>
+        {% else %}
+        <p class="text-muted">Ожидайте создания турнирной таблицы организатором</p>
+        {% endif %}
     </div>
     {% endif %}
 </div>

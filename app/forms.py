@@ -482,43 +482,61 @@ class AdvancedMatchResultForm(forms.ModelForm):
 class RoundRobinMatchResultForm(forms.ModelForm):
     """Форма для результатов матчей Round Robin"""
     
+    bo1_score = forms.ChoiceField(
+        choices=[('1-0', '1-0'), ('0-1', '0-1')],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm', 'style': 'width: 110px;'})
+    )
+    
+    bo3_score = forms.ChoiceField(
+        choices=[('2-0', '2-0'), ('0-2', '0-2'), ('2-1', '2-1'), ('1-2', '1-2')],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm', 'style': 'width: 110px;'})
+    )
+    
+    bo5_score = forms.ChoiceField(
+        choices=[('3-0', '3-0'), ('0-3', '0-3'), ('3-1', '3-1'), ('1-3', '1-3'), ('3-2', '3-2'), ('2-3', '2-3')],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm', 'style': 'width: 110px;'})
+    )
+    
     class Meta:
         model = RoundRobinMatch
         fields = ['team1_score', 'team2_score']
         widgets = {
-            'team1_score': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
-            'team2_score': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'team1_score': forms.HiddenInput(),
+            'team2_score': forms.HiddenInput(),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         if self.instance:
-            # Устанавливаем максимальные значения в зависимости от формата
-            max_score = {
-                'BO1': 1,
-                'BO3': 2,
-                'BO5': 3
-            }.get(self.instance.format, 3)
-            
-            self.fields['team1_score'].widget.attrs['max'] = max_score
-            self.fields['team2_score'].widget.attrs['max'] = max_score
-            
-            # Добавляем метки с названиями команд
-            if self.instance.team1:
-                self.fields['team1_score'].label = f"Счет команды {self.instance.team1.name}"
-            if self.instance.team2:
-                self.fields['team2_score'].label = f"Счет команды {self.instance.team2.name}"
+            # Устанавливаем начальные значения для полей выбора счета
+            if self.instance.format == 'BO1':
+                score = f"{self.instance.team1_score}-{self.instance.team2_score}"
+                self.fields['bo1_score'].initial = score
+            elif self.instance.format == 'BO3':
+                score = f"{self.instance.team1_score}-{self.instance.team2_score}"
+                self.fields['bo3_score'].initial = score
+            elif self.instance.format == 'BO5':
+                score = f"{self.instance.team1_score}-{self.instance.team2_score}"
+                self.fields['bo5_score'].initial = score
     
     def clean(self):
         cleaned_data = super().clean()
-        team1_score = cleaned_data.get('team1_score', 0)
-        team2_score = cleaned_data.get('team2_score', 0)
         
         if not self.instance:
             return cleaned_data
         
         match_format = self.instance.format
+        score_field = f'bo{match_format[2]}_score'
+        score = cleaned_data.get(score_field)
+        
+        if not score:
+            raise forms.ValidationError("Выберите счет матча")
+        
+        team1_score, team2_score = map(int, score.split('-'))
         
         # Проверяем корректность счета в зависимости от формата
         if match_format == 'BO1':
@@ -537,6 +555,10 @@ class RoundRobinMatchResultForm(forms.ModelForm):
         
         if team1_score == team2_score:
             raise forms.ValidationError("В матче должен быть определен победитель")
+        
+        # Устанавливаем значения для скрытых полей
+        cleaned_data['team1_score'] = team1_score
+        cleaned_data['team2_score'] = team2_score
         
         return cleaned_data
 

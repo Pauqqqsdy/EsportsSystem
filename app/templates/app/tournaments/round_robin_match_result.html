@@ -34,14 +34,9 @@
                                 <i class="fas fa-trophy me-2"></i>
                                 Результат матча:
                             </label>
-                            <select name="bo1_score" id="bo1_score" class="form-select">
-                                <option value="">Выберите результат</option>
-                                <option value="1-0" {% if match.team1_score= =1 and match.team2_score= =0 %}selected{% endif %}>
-                                    {{ match.team1.name }} побеждает
-                                </option>
-                                <option value="0-1" {% if match.team1_score= =0 and match.team2_score= =1 %}selected{% endif %}>
-                                    {{ match.team2.name }} побеждает
-                                </option>
+                            <select name="bo1_score" class="form-select form-select-sm" style="width: 110px;">
+                                <option value="1-0" {% if match.team1_score == 1 and match.team2_score == 0 %}selected{% endif %}>1-0</option>
+                                <option value="0-1" {% if match.team1_score == 0 and match.team2_score == 1 %}selected{% endif %}>0-1</option>
                             </select>
                         </div>
                         {% elif match.format == 'BO3' %}
@@ -50,20 +45,11 @@
                                 <i class="fas fa-trophy me-2"></i>
                                 Результат матча:
                             </label>
-                            <select name="bo3_score" id="bo3_score" class="form-select">
-                                <option value="">Выберите результат</option>
-                                <option value="2-0" {% if match.team1_score= =2 and match.team2_score= =0 %}selected{% endif %}>
-                                    {{ match.team1.name }} 2-0
-                                </option>
-                                <option value="2-1" {% if match.team1_score= =2 and match.team2_score= =1 %}selected{% endif %}>
-                                    {{ match.team1.name }} 2-1
-                                </option>
-                                <option value="1-2" {% if match.team1_score= =1 and match.team2_score= =2 %}selected{% endif %}>
-                                    {{ match.team2.name }} 2-1
-                                </option>
-                                <option value="0-2" {% if match.team1_score= =0 and match.team2_score= =2 %}selected{% endif %}>
-                                    {{ match.team2.name }} 2-0
-                                </option>
+                            <select name="bo3_score" class="form-select form-select-sm" style="width: 110px;">
+                                <option value="2-0" {% if match.team1_score == 2 and match.team2_score == 0 %}selected{% endif %}>2-0</option>
+                                <option value="0-2" {% if match.team1_score == 0 and match.team2_score == 2 %}selected{% endif %}>0-2</option>
+                                <option value="2-1" {% if match.team1_score == 2 and match.team2_score == 1 %}selected{% endif %}>2-1</option>
+                                <option value="1-2" {% if match.team1_score == 1 and match.team2_score == 2 %}selected{% endif %}>1-2</option>
                             </select>
                         </div>
                         {% elif match.format == 'BO5' %}
@@ -72,26 +58,13 @@
                                 <i class="fas fa-trophy me-2"></i>
                                 Результат матча:
                             </label>
-                            <select name="bo5_score" id="bo5_score" class="form-select">
-                                <option value="">Выберите результат</option>
-                                <option value="3-0" {% if match.team1_score= =3 and match.team2_score= =0 %}selected{% endif %}>
-                                    {{ match.team1.name }} 3-0
-                                </option>
-                                <option value="3-1" {% if match.team1_score= =3 and match.team2_score= =1 %}selected{% endif %}>
-                                    {{ match.team1.name }} 3-1
-                                </option>
-                                <option value="3-2" {% if match.team1_score= =3 and match.team2_score= =2 %}selected{% endif %}>
-                                    {{ match.team1.name }} 3-2
-                                </option>
-                                <option value="2-3" {% if match.team1_score= =2 and match.team2_score= =3 %}selected{% endif %}>
-                                    {{ match.team2.name }} 3-2
-                                </option>
-                                <option value="1-3" {% if match.team1_score= =1 and match.team2_score= =3 %}selected{% endif %}>
-                                    {{ match.team2.name }} 3-1
-                                </option>
-                                <option value="0-3" {% if match.team1_score= =0 and match.team2_score= =3 %}selected{% endif %}>
-                                    {{ match.team2.name }} 3-0
-                                </option>
+                            <select name="bo5_score" class="form-select form-select-sm" style="width: 110px;">
+                                <option value="3-0" {% if match.team1_score == 3 and match.team2_score == 0 %}selected{% endif %}>3-0</option>
+                                <option value="0-3" {% if match.team1_score == 0 and match.team2_score == 3 %}selected{% endif %}>0-3</option>
+                                <option value="3-1" {% if match.team1_score == 3 and match.team2_score == 1 %}selected{% endif %}>3-1</option>
+                                <option value="1-3" {% if match.team1_score == 1 and match.team2_score == 3 %}selected{% endif %}>1-3</option>
+                                <option value="3-2" {% if match.team1_score == 3 and match.team2_score == 2 %}selected{% endif %}>3-2</option>
+                                <option value="2-3" {% if match.team1_score == 2 and match.team2_score == 3 %}selected{% endif %}>2-3</option>
                             </select>
                         </div>
                         {% endif %}

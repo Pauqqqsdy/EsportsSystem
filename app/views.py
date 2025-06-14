@@ -565,71 +565,35 @@ def my_tournaments(request):
         'title': 'Мои турниры'
     })
 
-@login_required
 @require_POST
 def remove_team_from_tournament(request, tournament_id, team_id):
     from django.db import models
     from app.models import BracketMatch, RoundRobinMatch, RoundRobinResult
-    tournament = get_object_or_404(Tournament, id=tournament_id)
-    team = get_object_or_404(Team, id=team_id)
-    
-    if not tournament.is_creator(request.user):
-        return JsonResponse({'success': False, 'error': 'Только создатель может удалять команды'}, status=403)
-    
-    if not tournament.is_registered(team):
-        return JsonResponse({'success': False, 'error': 'Эта команда не зарегистрирована на турнир'}, status=400)
-    
-    tournament.registered_teams.remove(team)
-
-    # Удаляем команду из всех матчей турнирной сетки
-    if hasattr(tournament, 'bracket'):
-        BracketMatch.objects.filter(
-            stage__bracket__tournament=tournament
-        ).filter(
-            models.Q(team1=team) | models.Q(team2=team) | models.Q(winner=team)
-        ).update(
-            team1=models.Case(
-                models.When(team1=team, then=None),
-                default=models.F('team1')
-            ),
-            team2=models.Case(
-                models.When(team2=team, then=None),
-                default=models.F('team2')
-            ),
-            winner=models.Case(
-                models.When(winner=team, then=None),
-                default=models.F('winner')
-            )
-        )
-    # Удаляем команду из всех матчей и результатов Round Robin
-    if hasattr(tournament, 'round_robin_table'):
-        RoundRobinMatch.objects.filter(
-            table__tournament=tournament
-        ).filter(
-            models.Q(team1=team) | models.Q(team2=team) | models.Q(winner=team)
-        ).update(
-            team1=models.Case(
-                models.When(team1=team, then=None),
-                default=models.F('team1')
-            ),
-            team2=models.Case(
-                models.When(team2=team, then=None),
-                default=models.F('team2')
-            ),
-            winner=models.Case(
-                models.When(winner=team, then=None),
-                default=models.F('winner')
-            )
-        )
-        RoundRobinResult.objects.filter(
-            table__tournament=tournament,
-            team=team
-        ).delete()
-    
-    if tournament.game_format == '1x1' and (not hasattr(team.captain, 'userprofile') or team.captain.userprofile.team != team):
-        team.delete()
-    
-    return JsonResponse({'success': True})
+    try:
+        tournament = get_object_or_404(Tournament, id=tournament_id)
+        team = get_object_or_404(Team, id=team_id)
+        
+        if not tournament.is_creator(request.user):
+            return JsonResponse({'success': False, 'error': 'Только создатель может удалять команды'}, status=403)
+        
+        if not tournament.is_registered(team):
+            return JsonResponse({'success': False, 'error': 'Эта команда не зарегистрирована на турнир'}, status=400)
+        
+        # Проверяем, есть ли уже сформированная сетка
+        if hasattr(tournament, 'bracket') or hasattr(tournament, 'round_robin_table'):
+            return JsonResponse({
+                'success': False, 
+                'error': 'Нельзя удалить команду, так как турнирная сетка уже сформирована'
+            }, status=400)
+        
+        tournament.registered_teams.remove(team)
+        
+        if tournament.game_format == '1x1' and (not hasattr(team.captain, 'userprofile') or team.captain.userprofile.team != team):
+            team.delete()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 @require_POST

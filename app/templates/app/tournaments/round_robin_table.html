@@ -2,10 +2,13 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center">
             <i class="fas fa-table fa-2x text-primary me-3"></i>
-            <h1 class="mb-0">Турнирная таблица "{{ tournament.name }}"</h1>
+            <div>
+                <h1 class="mb-0">Турнирная таблица</h1>
+                <p class="text-muted mb-0">{{ tournament.name }}</p>
+            </div>
         </div>
         <div class="d-flex gap-2">
             <a href="{% url 'tournament_detail' tournament.id %}" class="btn btn-secondary">
@@ -51,21 +54,17 @@
                                     <td class="text-center fw-bold">{{ forloop.counter }}</td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            {% if result.team.avatar %}
-                                            <img src="{{ result.team.avatar.url }}"
-                                                 alt="{{ result.team.name }}"
-                                                 class="rounded-circle me-2"
-                                                 width="32" height="32">
+                                            {% if tournament.game_format == '1x1' and result.team.players.first %}
+                                            <a href="{% url 'view_profile' result.team.players.first.user.username %}"
+                                               class="text-decoration-none fw-bold">
+                                                {{ result.team.name }}
+                                            </a>
                                             {% else %}
-                                            <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                 style="width: 32px; height: 32px;">
-                                                <i class="fas fa-users text-white small"></i>
-                                            </div>
-                                            {% endif %}
                                             <a href="{% url 'team_page' result.team.id %}"
                                                class="text-decoration-none fw-bold">
                                                 {{ result.team.name }}
                                             </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                     <td class="text-center">{{ result.matches_played }}</td>
@@ -119,7 +118,13 @@
 
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="text-center flex-fill">
+                                            {% if tournament.game_format == '1x1' and match.team1.players.first %}
+                                            <a href="{% url 'view_profile' match.team1.players.first.user.username %}" class="text-decoration-none">
+                                                <div class="fw-bold">{{ match.team1.name }}</div>
+                                            </a>
+                                            {% else %}
                                             <div class="fw-bold">{{ match.team1.name }}</div>
+                                            {% endif %}
                                         </div>
                                         <div class="mx-3">
                                             {% if match.is_completed %}
@@ -167,7 +172,13 @@
                                             {% endif %}
                                         </div>
                                         <div class="text-center flex-fill">
+                                            {% if tournament.game_format == '1x1' and match.team2.players.first %}
+                                            <a href="{% url 'view_profile' match.team2.players.first.user.username %}" class="text-decoration-none">
+                                                <div class="fw-bold">{{ match.team2.name }}</div>
+                                            </a>
+                                            {% else %}
                                             <div class="fw-bold">{{ match.team2.name }}</div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -227,8 +238,17 @@
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
+                                    {% if tournament.game_format == '1x1' and match.team1.players.first and match.team2.players.first %}
+                                    <a href="{% url 'view_profile' match.team1.players.first.user.username %}" class="text-decoration-none">
+                                        <div class="fw-bold">{{ match.team1.name }}</div>
+                                    </a>
+                                    <a href="{% url 'view_profile' match.team2.players.first.user.username %}" class="text-decoration-none">
+                                        <div class="fw-bold">{{ match.team2.name }}</div>
+                                    </a>
+                                    {% else %}
                                     <div class="fw-bold">{{ match.team1.name }}</div>
                                     <div class="fw-bold">{{ match.team2.name }}</div>
+                                    {% endif %}
                                 </div>
                                 <div class="text-end">
                                     <div class="text-muted small">

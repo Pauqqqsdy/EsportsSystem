@@ -189,6 +189,7 @@
     #matches .text-center.text-muted {
         color: #a8a8a8 !important;
     }
+
     #teams .text-center.text-muted {
         color: #a8a8a8 !important;
     }
@@ -395,14 +396,17 @@
                         </div>
                     </form>
                     {% elif user.userprofile.team and user.userprofile.team.captain == user %}
-                    <form action="{% url 'cancel_tournament_participation' tournament_id=tournament.id %}" method="post">
-                        {% csrf_token %}
-                        <div class="d-grid">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'edit_tournament_roster' tournament_id=tournament.id %}" class="btn btn-primary">
+                            <i class="fas fa-user-edit me-1"></i>Изменить состав
+                        </a>
+                        <form action="{% url 'cancel_tournament_participation' tournament_id=tournament.id %}" method="post">
+                            {% csrf_token %}
                             <button type="submit" class="btn btn-danger">
                                 <i class="fas fa-times me-1"></i>Отменить участие
                             </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                     {% else %}
                     <div class="alert alert-success">Ваша команда уже зарегистрирована</div>
                     {% endif %}

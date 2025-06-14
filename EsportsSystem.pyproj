@@ -84,10 +84,12 @@
     <Content Include="app\templates\app\teams\edit_team.html" />
     <Content Include="app\templates\app\tournaments\edit_stage_format.html" />
     <Content Include="app\templates\app\tournaments\edit_tournament.html" />
+    <Content Include="app\templates\app\tournaments\edit_tournament_roster.html" />
     <Content Include="app\templates\app\tournaments\generate_bracket.html" />
     <Content Include="app\templates\app\tournaments\manual_bracket_setup.html" />
     <Content Include="app\templates\app\tournaments\matches\advanced_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\edit_match_schedule.html" />
+    <Content Include="app\templates\app\tournaments\round_robin_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\tournament_matches.html" />
     <Content Include="app\templates\app\tournaments\matches\update_match_result.html" />
     <Content Include="app\templates\app\tournaments\matches\match_detail.html" />

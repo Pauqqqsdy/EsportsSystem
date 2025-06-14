@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
-from .models import BracketMatch, BracketStage, Tournament, UserProfile, Team, RoundRobinMatch
+from .models import BracketMatch, BracketStage, Tournament, UserProfile, Team, RoundRobinMatch, TournamentRegistration
 from django.contrib.admin import widgets
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
@@ -248,23 +248,11 @@ class TournamentEditForm(TournamentForm):
         return cleaned_data
 
 class BracketGenerationForm(forms.Form):
-    GENERATION_CHOICES = [
-        ('random', 'Случайное распределение команд'),
-        ('manual', 'Ручное распределение команд'),
-    ]
-    
     FORMAT_CHOICES = [
         ('BO1', 'Best of 1'),
         ('BO3', 'Best of 3'),
         ('BO5', 'Best of 5'),
     ]
-    
-    generation_type = forms.ChoiceField(
-        choices=GENERATION_CHOICES,
-        widget=forms.RadioSelect,
-        label='Способ формирования сетки',
-        initial='random'
-    )
     
     def __init__(self, *args, tournament=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -593,3 +581,45 @@ class MatchResultForm(forms.ModelForm):
             self.fields['winner'].queryset = Team.objects.filter(
                 id__in=[self.instance.team1_id, self.instance.team2_id]
             )
+
+class TournamentRosterForm(forms.ModelForm):
+    class Meta:
+        model = TournamentRegistration
+        fields = ['players']
+        widgets = {
+            'players': forms.SelectMultiple(attrs={'class': 'form-select'})
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.team:
+            # Ограничиваем выбор только игроками команды
+            self.fields['players'].queryset = self.instance.team.players.all()
+            
+            # Добавляем подсказку о количестве игроков
+            tournament = self.instance.tournament
+            if tournament.tournament_format == 'single_elimination':
+                if tournament.game_format == '1x1':
+                    self.fields['players'].help_text = 'Выберите 1 игрока'
+                elif tournament.game_format == '2x2':
+                    self.fields['players'].help_text = 'Выберите 2 игрока'
+                elif tournament.game_format == '3x3':
+                    self.fields['players'].help_text = 'Выберите 3 игрока'
+                elif tournament.game_format == '5x5':
+                    self.fields['players'].help_text = 'Выберите 5 игроков'
+
+    def clean_players(self):
+        players = self.cleaned_data['players']
+        tournament = self.instance.tournament
+        
+        # Проверяем количество выбранных игроков в зависимости от формата
+        if tournament.game_format == '1x1' and players.count() != 1:
+            raise forms.ValidationError('Для формата 1x1 нужно выбрать ровно 1 игрока')
+        elif tournament.game_format == '2x2' and players.count() != 2:
+            raise forms.ValidationError('Для формата 2x2 нужно выбрать ровно 2 игрока')
+        elif tournament.game_format == '3x3' and players.count() != 3:
+            raise forms.ValidationError('Для формата 3x3 нужно выбрать ровно 3 игрока')
+        elif tournament.game_format == '5x5' and players.count() != 5:
+            raise forms.ValidationError('Для формата 5x5 нужно выбрать ровно 5 игроков')
+            
+        return players

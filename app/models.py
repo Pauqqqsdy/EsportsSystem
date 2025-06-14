@@ -27,17 +27,7 @@ class Tournament(models.Model):
         ('round_robin', 'Round Robin'),
     ]
     
-    TEAM_COUNT_CHOICES = [
-        (2, '2'),
-        (4, '4'),
-        (8, '8'),
-        (16, '16'),
-        (32, '32'),
-        (64, '64'),
-        (128, '128'),
-        (256, '256'),
-        (512, '512'),
-    ]
+    TEAM_COUNT_CHOICES = [(i, str(i)) for i in range(2, 513)]
     
     LOCATION_CHOICES = [
         ('China', 'Китай'),
@@ -400,6 +390,7 @@ class RoundRobinResult(models.Model):
     wins = models.PositiveIntegerField(default=0)
     losses = models.PositiveIntegerField(default=0)
     points = models.PositiveIntegerField(default=0)  # Очки (обычно 3 за победу, 1 за ничью, 0 за поражение)
+    map_difference = models.IntegerField(default=0, verbose_name="Разница карт")
     
     class Meta:
         unique_together = ('table', 'team')
@@ -467,15 +458,15 @@ class RoundRobinMatch(models.Model):
         result2, created2 = RoundRobinResult.objects.get_or_create(
             table=self.table, team=self.team2
         )
-        
         # Если матч уже был учтен, не обновляем статистику повторно
         if hasattr(self, '_results_updated'):
             return
-        
         # Обновляем статистику
         result1.matches_played += 1
         result2.matches_played += 1
-        
+        # Разница карт
+        result1.map_difference += self.team1_score - self.team2_score
+        result2.map_difference += self.team2_score - self.team1_score
         if self.winner == self.team1:
             result1.wins += 1
             result1.points += 3
@@ -484,8 +475,6 @@ class RoundRobinMatch(models.Model):
             result2.wins += 1
             result2.points += 3
             result1.losses += 1
-        
         result1.save()
         result2.save()
-        
         self._results_updated = True

@@ -15,94 +15,110 @@
     </div>
 
     {% if bracket %}
-    {% for stage in bracket.stages.all %}
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0">
-                <i class="fas fa-layer-group me-2 text-primary"></i>
-                {{ stage.name }}
-            </h5>
-            {% if is_creator and not stage.is_completed %}
-            <a href="{% url 'edit_stage_format' tournament_id=tournament.id stage_id=stage.id %}"
-               class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-cog me-1"></i>
-                Изменить формат ({{ stage.get_format_display }})
-            </a>
-            {% else %}
-            <span class="badge bg-secondary fs-6">
-                <i class="fas fa-info-circle me-1"></i>
-                {{ stage.get_format_display }}
-            </span>
-            {% endif %}
-        </div>
-        <div class="card-body">
-            <div class="row">
-                {% for match in stage.matches.all %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card h-100 {% if match.is_completed %}border-success{% endif %} shadow-sm">
-                        <div class="card-body">
-                            <div class="match-info d-flex justify-content-between align-items-center mb-3">
-                                <span class="text-muted">
-                                    <i class="fas fa-gamepad me-1"></i>
-                                    Матч {{ match.order }}
-                                </span>
-                                {% if match.is_completed %}
-                                <span class="badge bg-success">
-                                    <i class="fas fa-check me-1"></i>Завершен
-                                </span>
-                                {% else %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-clock me-1"></i>Ожидается
-                                </span>
-                                {% endif %}
-                            </div>
-
-                            <div class="match-teams">
-                                <div class="team {% if match.winner == match.team1 %}winner{% endif %}">
-                                    <i class="fas fa-user me-1"></i>
-                                    {{ match.team1.name|default:"-" }}
-                                    {% if match.winner == match.team1 %}
-                                    <i class="fas fa-crown ms-1 text-warning"></i>
-                                    {% endif %}
-                                </div>
-                                <div class="vs">
-                                    <i class="fas fa-versus"></i>
-                                </div>
-                                <div class="team {% if match.winner == match.team2 %}winner{% endif %}">
-                                    <i class="fas fa-user me-1"></i>
-                                    {{ match.team2.name|default:"-" }}
-                                    {% if match.winner == match.team2 %}
-                                    <i class="fas fa-crown ms-1 text-warning"></i>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            {% if match.is_completed %}
-                            <div class="winner mt-3 text-center">
-                                <div class="alert alert-success py-2">
-                                    <i class="fas fa-trophy me-1"></i>
-                                    <strong>Победитель: {{ match.winner.name }}</strong>
-                                </div>
-                            </div>
-                            {% endif %}
-
-                            {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
-                            <div class="mt-3 d-grid">
-                                <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}"
-                                   class="btn btn-sm btn-primary">
-                                    <i class="fas fa-crown me-1"></i>
-                                    Указать победителя
-                                </a>
-                            </div>
-                            {% endif %}
+    <div class="bracket-grid">
+        {# Верхняя сетка #}
+        <div class="bracket-section">
+            <div class="bracket-title">Верхняя сетка</div>
+            <div class="bracket-rounds">
+                {% for stage in bracket.stages.all %}
+                {% if stage.stage_type == 'upper' or stage.stage_type == 'normal' or stage.stage_type == 'final' %}
+                <div class="bracket-round">
+                    <div class="bracket-round-title">{{ stage.name }}</div>
+                    {% for match in stage.matches.all %}
+                    <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
+                        <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
+                            {{ match.team1.name|default:"-" }}
                         </div>
+                        <div class="bracket-vs">vs</div>
+                        <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
+                            {{ match.team2.name|default:"-" }}
+                        </div>
+                        {% if match.is_completed %}
+                        <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
+                        {% endif %}
+                        {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
+                        <div class="bracket-action">
+                            <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-crown me-1"></i>Указать победителя
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
+                    {% endfor %}
                 </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {# Нижняя сетка #}
+        <div class="bracket-section">
+            <div class="bracket-title">Нижняя сетка</div>
+            <div class="bracket-rounds">
+                {% for stage in bracket.stages.all %}
+                {% if stage.stage_type == 'lower' %}
+                <div class="bracket-round">
+                    <div class="bracket-round-title">{{ stage.name }}</div>
+                    {% for match in stage.matches.all %}
+                    <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
+                        <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
+                            {{ match.team1.name|default:"-" }}
+                        </div>
+                        <div class="bracket-vs">vs</div>
+                        <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
+                            {{ match.team2.name|default:"-" }}
+                        </div>
+                        {% if match.is_completed %}
+                        <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
+                        {% endif %}
+                        {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
+                        <div class="bracket-action">
+                            <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-crown me-1"></i>Указать победителя
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {# Финал и квалификация #}
+        <div class="bracket-section">
+            <div class="bracket-title">Финал</div>
+            <div class="bracket-rounds">
+                {% for stage in bracket.stages.all %}
+                {% if stage.stage_type == 'final' %}
+                <div class="bracket-round">
+                    <div class="bracket-round-title">{{ stage.name }}</div>
+                    {% for match in stage.matches.all %}
+                    <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
+                        <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
+                            {{ match.team1.name|default:"-" }}
+                        </div>
+                        <div class="bracket-vs">vs</div>
+                        <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
+                            {{ match.team2.name|default:"-" }}
+                        </div>
+                        {% if match.is_completed %}
+                        <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
+                        {% endif %}
+                        {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
+                        <div class="bracket-action">
+                            <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-crown me-1"></i>Указать победителя
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% endfor %}
             </div>
         </div>
     </div>
-    {% endfor %}
     {% else %}
     <div class="alert alert-info d-flex align-items-center" role="alert">
         <i class="fas fa-info-circle fa-2x me-3"></i>
@@ -119,54 +135,102 @@
 </div>
 
 <style>
-    .match-teams {
+    .bracket-grid {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin: 15px 0;
-        gap: 10px;
-    }
-
-    .team {
-        flex: 1;
-        padding: 12px;
-        text-align: center;
-        border-radius: 8px;
-        background-color: #f8f9fa;
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-    }
-
-        .team.winner {
-            background-color: #d4edda;
-            border-color: #28a745;
-            font-weight: bold;
-            transform: scale(1.02);
-        }
-
-    .vs {
-        padding: 0 15px;
-        font-weight: bold;
-        color: #6c757d;
-        display: flex;
-        align-items: center;
+        flex-wrap: wrap;
+        gap: 32px;
         justify-content: center;
     }
 
-    .winner {
+    .bracket-section {
+        min-width: 320px;
+        flex: 1 1 320px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        padding: 16px;
+    }
+
+    .bracket-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 12px;
+        color: #0056b3;
+        text-align: center;
+    }
+
+    .bracket-rounds {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .bracket-round-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: #333;
+        text-align: center;
+    }
+
+    .bracket-match {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        padding: 10px 8px;
+        margin-bottom: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: 2px solid transparent;
+        position: relative;
+    }
+
+        .bracket-match.completed {
+            border-color: #28a745;
+        }
+
+    .bracket-team {
+        width: 120px;
+        text-align: center;
+        padding: 6px 0;
+        border-radius: 6px;
+        background: #f1f3f4;
+        margin: 2px 0;
+        font-weight: 500;
+    }
+
+        .bracket-team.winner {
+            background: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+
+    .bracket-vs {
+        font-size: 1.1rem;
+        color: #888;
+        margin: 2px 0;
+    }
+
+    .bracket-winner {
         color: #28a745;
+        font-size: 0.95rem;
+        margin-top: 4px;
         font-weight: bold;
     }
 
-    @media (max-width: 768px) {
-        .match-teams {
+    .bracket-action {
+        margin-top: 6px;
+    }
+
+    @media (max-width: 900px) {
+        .bracket-grid {
             flex-direction: column;
-            gap: 5px;
+            gap: 18px;
         }
 
-        .vs {
-            transform: rotate(90deg);
-            padding: 5px 0;
+        .bracket-section {
+            min-width: unset;
         }
     }
 </style>

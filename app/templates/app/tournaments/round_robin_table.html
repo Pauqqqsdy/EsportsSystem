@@ -42,6 +42,7 @@
                                     <th class="text-center">Пр</th>
                                     <th class="text-center">О</th>
                                     <th class="text-center">%</th>
+                                    <th class="text-center">Разн. карт</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -72,10 +73,11 @@
                                     <td class="text-center text-danger">{{ result.losses }}</td>
                                     <td class="text-center text-primary fw-bold">{{ result.points }}</td>
                                     <td class="text-center">{{ result.get_win_rate }}%</td>
+                                    <td class="text-center">{{ result.map_difference }}</td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="8" class="text-center text-muted py-4">
                                         <i class="fas fa-info-circle me-2"></i>
                                         Результаты еще не доступны
                                     </td>
@@ -124,6 +126,14 @@
                                             <span class="badge bg-primary fs-6">
                                                 {{ match.get_score_display }}
                                             </span>
+                                            {% elif is_creator %}
+                                            <form method="post" action="{% url 'round_robin_match_result' tournament.id match.id %}" class="d-inline-flex align-items-center gap-1">
+                                                {% csrf_token %}
+                                                <input type="number" name="team1_score" value="{{ match.team1_score }}" min="0" max="99" class="form-control form-control-sm" style="width: 48px;">
+                                                <span class="mx-1">:</span>
+                                                <input type="number" name="team2_score" value="{{ match.team2_score }}" min="0" max="99" class="form-control form-control-sm" style="width: 48px;">
+                                                <button type="submit" class="btn btn-success btn-sm ms-2">Сохранить</button>
+                                            </form>
                                             {% else %}
                                             <span class="text-muted">vs</span>
                                             {% endif %}

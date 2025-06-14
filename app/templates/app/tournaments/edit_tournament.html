@@ -1,4 +1,8 @@
-{% extends "app/layout.html" %}
+{% extends 'app/base.html' %}
+{% load static %}
+{% load form_tags %}
+
+{% block title %}Редактирование турнира{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -12,6 +16,30 @@
                     </h3>
                 </div>
                 <div class="card-body">
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                            {% for field, errors in form.errors.items %}
+                            {% if field != '__all__' %}
+                            {% for error in errors %}
+                            <li>
+                                {% with field_obj=form|get_item:field %}
+                                {% if field_obj %}
+                                {{ field_obj.label }}: {{ error }}
+                                {% else %}
+                                {{ field }}: {{ error }}
+                                {% endif %}
+                                {% endwith %}
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
                     <form method="post">
                         {% csrf_token %}
 
@@ -178,6 +206,33 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmRemoveTeam(teamId, teamName);
         });
     });
+    const tournamentFormatSelect = document.getElementById('id_tournament_format');
+    const maxTeamsSelect = document.getElementById('id_max_teams');
+    function updateMaxTeamsOptions() {
+        if (!tournamentFormatSelect || !maxTeamsSelect) return;
+        const format = tournamentFormatSelect.value;
+        let options = [];
+        let validValues = [];
+        if (format === 'round_robin') {
+            for (let i = 2; i <= 20; i++) {
+                options.push(`<option value="${i}">${i}</option>`);
+                validValues.push(String(i));
+            }
+        } else if (format === 'single_elimination' || format === 'double_elimination') {
+            [2, 4, 8, 16, 32, 64, 128, 256, 512].forEach(i => {
+                options.push(`<option value="${i}">${i}</option>`);
+                validValues.push(String(i));
+            });
+        }
+        maxTeamsSelect.innerHTML = options.join('');
+        if (!validValues.includes(maxTeamsSelect.value)) {
+            maxTeamsSelect.value = validValues[0];
+        }
+    }
+    if (tournamentFormatSelect && maxTeamsSelect) {
+        tournamentFormatSelect.addEventListener('change', updateMaxTeamsOptions);
+        updateMaxTeamsOptions();
+    }
 });
 
 function confirmRemoveTeam(teamId, teamName) {

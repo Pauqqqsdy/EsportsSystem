@@ -11,59 +11,46 @@ from .models import (
 
 def create_single_elimination_bracket(tournament, teams, distribution_type='random', 
                                      third_place_match=False, stage_formats=None):
-    """Создает турнирную сетку Single Elimination"""
-    
+    """Создает турнирную сетку Single Elimination с динамическими стадиями и поддержкой bye"""
     if distribution_type == 'random':
         teams = list(teams)
         random.shuffle(teams)
     
     with transaction.atomic():
-        # Удаляем существующую сетку если есть
         if hasattr(tournament, 'bracket'):
             tournament.bracket.delete()
-        
-        # Создаем новую сетку
         bracket = TournamentBracket.objects.create(
             tournament=tournament,
             distribution_type=distribution_type,
             third_place_match=third_place_match
         )
-        
-        # Создаем этапы
         team_count = len(teams)
         current_time = tournament.start_date
-        
-        # Рассчитываем правильное количество раундов для Single Elimination
-        # Для N команд нужно ceil(log2(N)) раундов
-        total_rounds = max(1, math.ceil(math.log2(team_count))) if team_count > 1 else 1
-        
-        # Создаем этапы от первого раунда до финала
-        teams_in_round = team_count
-        for round_number in range(1, total_rounds + 1):
-            # Рассчитываем количество матчей в этом раунде
-            matches_in_round = math.ceil(teams_in_round / 2) if teams_in_round > 1 else 0
-            
-            # Пропускаем пустые раунды
+        rounds = []
+        n = team_count
+        while n > 1:
+            rounds.append(n)
+            n = math.ceil(n / 2)
+        total_rounds = len(rounds)
+        for round_number, teams_in_round in enumerate(rounds, 1):
+            matches_in_round = math.ceil(teams_in_round / 2)
             if matches_in_round == 0:
                 continue
-            
-            # Определяем название этапа
             if round_number == total_rounds:
                 stage_name = "Финал"
                 stage_type = 'final'
-            elif round_number == total_rounds - 1 and total_rounds > 1:
-                stage_name = "Полуфиналы" if matches_in_round > 1 else "Полуфинал"
+            elif round_number == total_rounds - 1:
+                stage_name = "Полуфинал"
+                stage_type = 'normal'
+            elif round_number == total_rounds - 2:
+                stage_name = "Четвертьфинал"
                 stage_type = 'normal'
             else:
-                stage_name = get_stage_name_by_round(round_number, total_rounds, matches_in_round)
+                stage_name = f"Раунд {round_number}"
                 stage_type = 'normal'
-            
-            # Определяем формат для этого этапа
-            stage_format = 'BO3'  # По умолчанию
+            stage_format = 'BO3'
             if stage_formats and f'format_round_{round_number}' in stage_formats:
                 stage_format = stage_formats[f'format_round_{round_number}']
-            
-            # Создаем этап
             stage = BracketStage.objects.create(
                 bracket=bracket,
                 name=stage_name,
@@ -72,62 +59,91 @@ def create_single_elimination_bracket(tournament, teams, distribution_type='rand
                 order=round_number,
                 scheduled_time=current_time
             )
-            
-            # Создаем матчи для этого этапа
             if round_number == 1:
-                # В первом раунде используем все команды
                 create_matches_for_stage(stage, teams, matches_in_round, current_time)
             else:
-                # В последующих раундах матчи создаются без команд (команды будут назначены после завершения предыдущих матчей)
                 create_empty_matches_for_stage(stage, matches_in_round, current_time)
-            
-            # Переходим к следующему раунду
-            teams_in_round = matches_in_round
-            current_time += timedelta(hours=2)  # 2 часа между этапами
-        
-        # Создаем матч за третье место если нужно
+            current_time += timedelta(hours=2)
         if third_place_match and total_rounds > 1:
             create_third_place_match(bracket, current_time)
-        
         return bracket
 
 
 def create_double_elimination_bracket(tournament, teams, distribution_type='random',
                                     stage_formats=None):
-    """Создает турнирную сетку Double Elimination"""
-    
+    """Создает турнирную сетку Double Elimination с динамическими стадиями и поддержкой bye"""
     if distribution_type == 'random':
         teams = list(teams)
         random.shuffle(teams)
-    
     with transaction.atomic():
-        # Удаляем существующую сетку если есть
         if hasattr(tournament, 'bracket'):
             tournament.bracket.delete()
-        
-        # Создаем новую сетку
         bracket = TournamentBracket.objects.create(
             tournament=tournament,
             distribution_type=distribution_type
         )
-        
         team_count = len(teams)
         current_time = tournament.start_date
-        
-        # Для малого количества команд (2-3) используем упрощенную логику
-        if team_count <= 3:
-            create_simple_double_elimination(bracket, teams, current_time, stage_formats)
-        else:
-            # Для большого количества команд используем полную логику
-            # Создаем верхнюю сетку (Winner's Bracket)
-            create_upper_bracket(bracket, teams, current_time, stage_formats)
-            
-            # Создаем нижнюю сетку (Loser's Bracket)
-            create_lower_bracket(bracket, team_count, current_time, stage_formats)
-            
-            # Создаем гранд-финал
-            create_grand_final(bracket, current_time + timedelta(hours=6))
-        
+        upper_rounds = []
+        n = team_count
+        while n > 1:
+            upper_rounds.append(n)
+            n = math.ceil(n / 2)
+        total_upper = len(upper_rounds)
+        upper_stage_objs = []
+        for round_number, teams_in_round in enumerate(upper_rounds, 1):
+            matches_in_round = math.ceil(teams_in_round / 2)
+            if matches_in_round == 0:
+                continue
+            if round_number == total_upper:
+                stage_name = "Верхний финал"
+            elif round_number == total_upper - 1:
+                stage_name = "Верхний полуфинал"
+            else:
+                stage_name = f"Верхний раунд {round_number}"
+            stage_format = 'BO3'
+            if stage_formats and f'format_round_{round_number}' in stage_formats:
+                stage_format = stage_formats[f'format_round_{round_number}']
+            stage = BracketStage.objects.create(
+                bracket=bracket,
+                name=stage_name,
+                format=stage_format,
+                stage_type='upper',
+                order=round_number,
+                scheduled_time=current_time
+            )
+            if round_number == 1:
+                create_matches_for_stage(stage, teams, matches_in_round, current_time)
+            else:
+                create_empty_matches_for_stage(stage, matches_in_round, current_time)
+            upper_stage_objs.append(stage)
+            current_time += timedelta(hours=2)
+        lower_rounds = max(1, len(upper_rounds) - 1)
+        for i in range(lower_rounds):
+            stage_name = f"Нижний раунд {i+1}" if lower_rounds > 1 else "Нижний полуфинал"
+            stage = BracketStage.objects.create(
+                bracket=bracket,
+                name=stage_name,
+                format='BO3',
+                stage_type='lower',
+                order=100 + i + 1,
+                scheduled_time=current_time
+            )
+            create_empty_matches_for_stage(stage, 1, current_time)
+            current_time += timedelta(hours=2)
+        grand_final = BracketStage.objects.create(
+            bracket=bracket,
+            name="Гранд-финал",
+            format='BO5',
+            stage_type='final',
+            order=200,
+            scheduled_time=current_time
+        )
+        BracketMatch.objects.create(
+            stage=grand_final,
+            order=1,
+            scheduled_time=current_time
+        )
         return bracket
 
 

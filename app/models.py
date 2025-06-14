@@ -38,14 +38,14 @@ class Tournament(models.Model):
         ('South America', 'Южная Америка'),
     ]
 
-    name = models.CharField(max_length=200, verbose_name="Название турнира")
+    name = models.CharField(max_length=50, verbose_name="Название турнира")
     max_teams = models.IntegerField(choices=TEAM_COUNT_CHOICES, verbose_name="Максимальное количество команд")
     start_date = models.DateTimeField(verbose_name="Дата начала")
     discipline = models.CharField(max_length=50, choices=DISCIPLINE_CHOICES, verbose_name="Дисциплина")
     game_format = models.CharField(max_length=50, choices=FORMAT_CHOICES, verbose_name="Формат игры")
     tournament_format = models.CharField(max_length=50, choices=TOURNAMENT_FORMAT_CHOICES, verbose_name="Формат турнира", blank=True, null=True)
     location = models.CharField(max_length=50, choices=LOCATION_CHOICES, verbose_name="Локация")
-    description = models.TextField(verbose_name="Описание", blank=True, null=True)
+    description = models.TextField(max_length=1000, verbose_name="Описание", blank=True, null=True)
     creator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Создатель")
     created_at = models.DateTimeField(default=timezone.now, verbose_name="Дата создания")
     is_active = models.BooleanField(default=True, verbose_name="Активный")
@@ -135,7 +135,7 @@ class TournamentRegistration(models.Model):
 
 class Team(models.Model):
     name = models.CharField(
-        max_length=100,
+        max_length=20,
         unique=True,
         verbose_name="Название команды",
         error_messages={
@@ -144,7 +144,7 @@ class Team(models.Model):
     )
     avatar = models.ImageField(
         upload_to='team_avatars/',
-        default='team_avatars/default.jpg',
+        default='team_avatars/default_team.jpg',
         blank=True,
         null=True,
         verbose_name="Аватар команды"

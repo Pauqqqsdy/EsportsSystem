@@ -758,6 +758,34 @@ def tournament_bracket(request, tournament_id):
         bracket = getattr(tournament, 'bracket', None)
         context['bracket'] = bracket
         if bracket:
+            # --- Формирование данных для jQuery Bracket ---
+            import json
+            stages = list(bracket.stages.order_by('order').all())
+            matches_by_stage = [list(stage.matches.order_by('order').all()) for stage in stages]
+            # Список всех команд (по порядку первого раунда)
+            first_stage = stages[0] if stages else None
+            teams = []
+            if first_stage:
+                for match in first_stage.matches.order_by('order').all():
+                    t1 = match.team1.name if match.team1 else None
+                    t2 = match.team2.name if match.team2 else None
+                    teams.append([t1, t2])
+            # Результаты по раундам
+            results = []
+            for stage_matches in matches_by_stage:
+                round_results = []
+                for match in stage_matches:
+                    if match.team1 is not None and match.team2 is not None:
+                        round_results.append([match.team1_score, match.team2_score])
+                    else:
+                        round_results.append([None, None])
+                results.append(round_results)
+            bracket_data = {
+                'teams': teams,
+                'results': results
+            }
+            context['bracket_json'] = json.dumps(bracket_data, ensure_ascii=False)
+            # --- конец формирования данных ---
             upcoming_matches = get_upcoming_matches(tournament)
             context['upcoming_matches'] = upcoming_matches[:5]
             # Формы для незавершённых матчей

@@ -49,14 +49,16 @@ urlpatterns = [
     path('tournaments/<int:tournament_id>/manual_bracket/', views.manual_bracket_setup, name='manual_bracket_setup'),
     path('tournaments/<int:tournament_id>/stages/<int:stage_id>/edit/', views.edit_stage_format, name='edit_stage_format'),
     path('tournaments/<int:tournament_id>/stages/<int:stage_id>/complete/', views.complete_stage, name='complete_stage'),
-    
+    path('tournament/<int:tournament_id>/bracket/match/<int:match_id>/result/', views.bracket_match_result_inline, name='bracket_match_result_inline'),
+    path('tournaments/<int:tournament_id>/bracket/match/<int:match_id>/score/', views.bracket_match_score_api, name='bracket_match_score_api'),
+
     # Матчи
     path('tournaments/<int:tournament_id>/matches/', views.tournament_matches, name='tournament_matches'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/', views.match_detail, name='match_detail'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/update/', views.update_match_result, name='update_match_result'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/advanced_update/', views.advanced_match_result, name='advanced_match_result'),
     path('tournaments/<int:tournament_id>/matches/<int:match_id>/schedule/', views.edit_match_schedule, name='edit_match_schedule'),
-    
+
     # Round Robin формат
     path('tournaments/<int:tournament_id>/round_robin/', views.round_robin_table, name='round_robin_table'),
     path('tournaments/<int:tournament_id>/round_robin_matches/<int:match_id>/update/', views.round_robin_match_result, name='round_robin_match_result'),

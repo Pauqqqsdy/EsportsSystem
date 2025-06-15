@@ -457,6 +457,11 @@ def edit_tournament(request, tournament_id):
         messages.error(request, 'Только создатель может редактировать турнир')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
+    # Проверяем, есть ли уже сформированная сетка
+    if hasattr(tournament, 'bracket') or hasattr(tournament, 'round_robin_table'):
+        messages.error(request, 'Нельзя редактировать турнир, так как турнирная сетка уже сформирована')
+        return redirect('tournament_detail', tournament_id=tournament.id)
+    
     if request.method == 'POST':
         form = TournamentEditForm(request.POST, instance=tournament)
         if form.is_valid():
@@ -662,6 +667,15 @@ def generate_bracket(request, tournament_id):
         messages.error(request, f'Формирование турнирной сетки доступно от двух участников и больше. Сейчас зарегистрировано: {teams_count}')
         return redirect('tournament_detail', tournament_id=tournament.id)
     
+    # Проверка на степень двойки для single elimination
+    if tournament.tournament_format == 'single_elimination':
+        def is_power_of_two(n):
+            return n > 0 and (n & (n - 1)) == 0
+        
+        if not is_power_of_two(teams_count):
+            messages.error(request, f'Для формата Single Elimination количество команд должно быть степенью двойки (2, 4, 8, 16, 32, 64, 128, 256, 512). Текущее количество команд: {teams_count}')
+            return redirect('tournament_detail', tournament_id=tournament.id)
+    
     if request.method == 'POST':
         form = BracketGenerationForm(request.POST, tournament=tournament)
         
@@ -730,26 +744,25 @@ def get_default_format(team_count):
 def tournament_bracket(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     is_creator = tournament.is_creator(request.user) if request.user.is_authenticated else False
-    
     context = {
         'tournament': tournament,
         'is_creator': is_creator
     }
-    
-    # В зависимости от формата турнира показываем разные данные
     if tournament.tournament_format == 'round_robin':
-        # Для Round Robin перенаправляем на специальную страницу
         return redirect('round_robin_table', tournament_id=tournament.id)
     else:
-        # Для других форматов показываем турнирную сетку
         bracket = getattr(tournament, 'bracket', None)
         context['bracket'] = bracket
-        
-        # Получаем предстоящие матчи
         if bracket:
             upcoming_matches = get_upcoming_matches(tournament)
-            context['upcoming_matches'] = upcoming_matches[:5]  # Первые 5 матчей
-    
+            context['upcoming_matches'] = upcoming_matches[:5]
+            # Формы для незавершённых матчей
+            match_forms = {}
+            for stage in bracket.stages.all():
+                for match in stage.matches.all():
+                    if not match.is_completed and match.team1 and match.team2:
+                        match_forms[match.id] = AdvancedMatchResultForm(instance=match)
+            context['match_forms'] = match_forms
     return render(request, 'app/tournaments/tournament_bracket.html', context)
 
 @login_required
@@ -922,7 +935,7 @@ def manual_bracket_setup(request, tournament_id):
 
 @login_required
 def advanced_match_result(request, tournament_id, match_id):
-    """Расширенная форма для ввода результатов матча с учетом счета"""
+    """Расширенная форма для ввода результатов матча с учетом счета (Single/Double Elimination)"""
     tournament = get_object_or_404(Tournament, id=tournament_id)
     match = get_object_or_404(BracketMatch, id=match_id, stage__bracket__tournament=tournament)
     
@@ -934,15 +947,15 @@ def advanced_match_result(request, tournament_id, match_id):
         messages.error(request, 'Обе команды должны быть определены для матча')
         return redirect('tournament_bracket', tournament_id=tournament.id)
     
+    # Используем форму AdvancedMatchResultForm для single/double elimination (ввод счёта)
     if request.method == 'POST':
         form = AdvancedMatchResultForm(request.POST, instance=match)
         if form.is_valid():
             match = form.save(commit=False)
             match.is_completed = True
             match.save()
-            
+            # Победитель определяется автоматически в save()
             promote_winner_to_next_stage(match)
-            
             messages.success(request, 'Результат матча обновлен')
             return redirect('tournament_bracket', tournament_id=tournament.id)
     else:
@@ -1232,5 +1245,63 @@ def edit_tournament_roster(request, tournament_id):
         'tournament': tournament,
         'team': team,
         'form': form
+    })
+
+@login_required
+def bracket_match_result_inline(request, tournament_id, match_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    match = get_object_or_404(BracketMatch, id=match_id, stage__bracket__tournament=tournament)
+    if not tournament.is_creator(request.user):
+        messages.error(request, 'Только создатель турнира может обновлять результаты')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    if not match.team1 or not match.team2:
+        messages.error(request, 'Обе команды должны быть определены для матча')
+        return redirect('tournament_bracket', tournament_id=tournament.id)
+    if request.method == 'POST':
+        form = AdvancedMatchResultForm(request.POST, instance=match)
+        if form.is_valid():
+            match = form.save(commit=False)
+            match.is_completed = True
+            match.save()
+            promote_winner_to_next_stage(match)
+            messages.success(request, 'Результат матча обновлен')
+        else:
+            # Сохраняем ошибки формы во временное хранилище
+            request.session['inline_form_errors'] = form.errors.get_json_data()
+    return redirect('tournament_bracket', tournament_id=tournament.id)
+
+@login_required
+@require_POST
+def bracket_match_score_api(request, tournament_id, match_id):
+    from app.models import BracketMatch
+    match = get_object_or_404(BracketMatch, id=match_id, stage__bracket__tournament_id=tournament_id)
+    tournament = match.stage.bracket.tournament
+    if not tournament.is_creator(request.user):
+        return JsonResponse({'error': 'Нет прав'}, status=403)
+    try:
+        team1_score = int(request.POST.get('team1_score'))
+        team2_score = int(request.POST.get('team2_score'))
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Некорректный счет'}, status=400)
+    match_format = match.stage.format or 'BO1'
+    win_score = {'BO1': 1, 'BO3': 2, 'BO5': 3}.get(match_format, 1)
+    if team1_score < 0 or team2_score < 0 or (team1_score < win_score and team2_score < win_score):
+        return JsonResponse({'error': 'Счет не соответствует формату'}, status=400)
+    if not (
+        (team1_score == win_score and team2_score < win_score) or
+        (team2_score == win_score and team1_score < win_score)
+    ):
+        return JsonResponse({'error': f'Победитель должен набрать {win_score}, а проигравший меньше'}, status=400)
+    match.team1_score = team1_score
+    match.team2_score = team2_score
+    match.is_completed = True
+    match.winner = match.team1 if team1_score > team2_score else match.team2
+    match.save()
+    promote_winner_to_next_stage(match)
+    return JsonResponse({
+        'success': True,
+        'winner': match.winner.name,
+        'team1_score': team1_score,
+        'team2_score': team2_score
     })
 

@@ -1,5 +1,4 @@
 {% extends "app/layout.html" %}
-{% load dict_extras %}
 
 {% block content %}
 <div class="container mt-4">
@@ -16,121 +15,108 @@
     </div>
 
     {% if bracket %}
-    <div class="bracket-container">
-        <div class="bracket-navigation">
-            <button class="btn btn-outline-primary" id="scrollLeft">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="btn btn-outline-primary" id="scrollRight">
-                <i class="fas fa-chevron-right"></i>
-            </button>
+    <div class="bracket-grid">
+        {# Верхняя сетка #}
+        <div class="bracket-section">
+            <div class="bracket-title">Верхняя сетка</div>
+            <div class="bracket-rounds">
+                {% for stage in bracket.stages.all %}
+                {% if stage.stage_type == 'upper' or stage.stage_type == 'normal' or stage.stage_type == 'final' %}
+                <div class="bracket-round">
+                    <div class="bracket-round-title">{{ stage.name }}</div>
+                    {% for match in stage.matches.all %}
+                    <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
+                        <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
+                            {{ match.team1.name|default:"-" }}
+                        </div>
+                        <div class="bracket-vs">vs</div>
+                        <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
+                            {{ match.team2.name|default:"-" }}
+                        </div>
+                        {% if match.is_completed %}
+                        <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
+                        {% endif %}
+                        {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
+                        <div class="bracket-action">
+                            <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-crown me-1"></i>Указать победителя
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
         </div>
-        <div class="bracket-grid">
-            {# Обычные этапы #}
-            {% for stage in bracket.stages.all %}
-            {% if stage.stage_type == 'normal' %}
-            <div class="bracket-round">
-                <div class="bracket-round-title">{{ stage.name }}</div>
-                {% for match in stage.matches.all %}
-                <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
-                    <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
-                        {{ match.team1.name|default:"-" }}
+        {# Нижняя сетка #}
+        <div class="bracket-section">
+            <div class="bracket-title">Нижняя сетка</div>
+            <div class="bracket-rounds">
+                {% for stage in bracket.stages.all %}
+                {% if stage.stage_type == 'lower' %}
+                <div class="bracket-round">
+                    <div class="bracket-round-title">{{ stage.name }}</div>
+                    {% for match in stage.matches.all %}
+                    <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
+                        <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
+                            {{ match.team1.name|default:"-" }}
+                        </div>
+                        <div class="bracket-vs">vs</div>
+                        <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
+                            {{ match.team2.name|default:"-" }}
+                        </div>
+                        {% if match.is_completed %}
+                        <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
+                        {% endif %}
+                        {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
+                        <div class="bracket-action">
+                            <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-crown me-1"></i>Указать победителя
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="bracket-vs">vs</div>
-                    <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
-                        {{ match.team2.name|default:"-" }}
-                    </div>
-                    {% if match.is_completed %}
-                    <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
-                    {% endif %}
-                    {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
-                    <div class="bracket-action">
-                        <form method="post" action="{% url 'bracket_match_result_inline' tournament.id match.id %}" class="d-flex flex-column gap-1">
-                            {% csrf_token %}
-                            {{ match_forms|dict_get:match.id.team1_score }}
-                            {{ match_forms|dict_get:match.id.team2_score }}
-                            {% if match_forms|dict_get:match.id.non_field_errors %}
-                            <div class="text-danger small mt-1">{{ match_forms|dict_get:match.id.non_field_errors }}</div>
-                            {% endif %}
-                            <button type="submit" class="btn btn-success btn-sm mt-1">Сохранить</button>
-                        </form>
-                    </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
-            {# Финал #}
-            {% for stage in bracket.stages.all %}
-            {% if stage.stage_type == 'final' %}
-            <div class="bracket-round">
-                <div class="bracket-round-title">{{ stage.name }}</div>
-                {% for match in stage.matches.all %}
-                <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
-                    <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
-                        {{ match.team1.name|default:"-" }}
+        </div>
+        {# Финал и квалификация #}
+        <div class="bracket-section">
+            <div class="bracket-title">Финал</div>
+            <div class="bracket-rounds">
+                {% for stage in bracket.stages.all %}
+                {% if stage.stage_type == 'final' %}
+                <div class="bracket-round">
+                    <div class="bracket-round-title">{{ stage.name }}</div>
+                    {% for match in stage.matches.all %}
+                    <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
+                        <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
+                            {{ match.team1.name|default:"-" }}
+                        </div>
+                        <div class="bracket-vs">vs</div>
+                        <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
+                            {{ match.team2.name|default:"-" }}
+                        </div>
+                        {% if match.is_completed %}
+                        <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
+                        {% endif %}
+                        {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
+                        <div class="bracket-action">
+                            <a href="{% url 'update_match_result' tournament_id=tournament.id match_id=match.id %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-crown me-1"></i>Указать победителя
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="bracket-vs">vs</div>
-                    <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
-                        {{ match.team2.name|default:"-" }}
-                    </div>
-                    {% if match.is_completed %}
-                    <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
-                    {% endif %}
-                    {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
-                    <div class="bracket-action">
-                        <form method="post" action="{% url 'bracket_match_result_inline' tournament.id match.id %}" class="d-flex flex-column gap-1">
-                            {% csrf_token %}
-                            {{ match_forms|dict_get:match.id.team1_score }}
-                            {{ match_forms|dict_get:match.id.team2_score }}
-                            {% if match_forms|dict_get:match.id.non_field_errors %}
-                            <div class="text-danger small mt-1">{{ match_forms|dict_get:match.id.non_field_errors }}</div>
-                            {% endif %}
-                            <button type="submit" class="btn btn-success btn-sm mt-1">Сохранить</button>
-                        </form>
-                    </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
-            {% endif %}
-            {% endfor %}
-            {# Матч за 3 место #}
-            {% for stage in bracket.stages.all %}
-            {% if stage.stage_type == 'third_place' %}
-            <div class="bracket-round">
-                <div class="bracket-round-title">{{ stage.name }}</div>
-                {% for match in stage.matches.all %}
-                <div class="bracket-match {% if match.is_completed %}completed{% endif %}">
-                    <div class="bracket-team {% if match.winner == match.team1 %}winner{% endif %}">
-                        {{ match.team1.name|default:"-" }}
-                    </div>
-                    <div class="bracket-vs">vs</div>
-                    <div class="bracket-team {% if match.winner == match.team2 %}winner{% endif %}">
-                        {{ match.team2.name|default:"-" }}
-                    </div>
-                    {% if match.is_completed %}
-                    <div class="bracket-winner">Победитель: {{ match.winner.name }}</div>
-                    {% endif %}
-                    {% if is_creator and not match.is_completed and match.team1 and match.team2 %}
-                    <div class="bracket-action">
-                        <form method="post" action="{% url 'bracket_match_result_inline' tournament.id match.id %}" class="d-flex flex-column gap-1">
-                            {% csrf_token %}
-                            {{ match_forms|dict_get:match.id.team1_score }}
-                            {{ match_forms|dict_get:match.id.team2_score }}
-                            {% if match_forms|dict_get:match.id.non_field_errors %}
-                            <div class="text-danger small mt-1">{{ match_forms|dict_get:match.id.non_field_errors }}</div>
-                            {% endif %}
-                            <button type="submit" class="btn btn-success btn-sm mt-1">Сохранить</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endfor %}
         </div>
     </div>
     {% else %}
@@ -149,46 +135,40 @@
 </div>
 
 <style>
-    .bracket-container {
-        position: relative;
-        width: 100%;
-        overflow: hidden;
-    }
-
-    .bracket-navigation {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        transform: translateY(-50%);
-        display: flex;
-        justify-content: space-between;
-        padding: 0 10px;
-        z-index: 10;
-    }
-
     .bracket-grid {
         display: flex;
-        flex-direction: row;
+        flex-wrap: wrap;
         gap: 32px;
-        padding: 20px 0;
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
+        justify-content: center;
     }
 
-    .bracket-round {
-        min-width: 280px;
+    .bracket-section {
+        min-width: 320px;
+        flex: 1 1 320px;
         background: #f8f9fa;
         border-radius: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         padding: 16px;
     }
 
+    .bracket-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 12px;
+        color: #0056b3;
+        text-align: center;
+    }
+
+    .bracket-rounds {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
     .bracket-round-title {
         font-size: 1.1rem;
         font-weight: 500;
-        margin-bottom: 12px;
+        margin-bottom: 6px;
         color: #333;
         text-align: center;
     }
@@ -243,58 +223,15 @@
         margin-top: 6px;
     }
 
-    @media (max-width: 768px) {
-        .bracket-navigation {
-            display: none;
+    @media (max-width: 900px) {
+        .bracket-grid {
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .bracket-section {
+            min-width: unset;
         }
     }
 </style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const bracketGrid = document.querySelector('.bracket-grid');
-        const scrollLeftBtn = document.getElementById('scrollLeft');
-        const scrollRightBtn = document.getElementById('scrollRight');
-
-        if (bracketGrid && scrollLeftBtn && scrollRightBtn) {
-            scrollLeftBtn.addEventListener('click', () => {
-                bracketGrid.scrollBy({ left: -300, behavior: 'smooth' });
-            });
-
-            scrollRightBtn.addEventListener('click', () => {
-                bracketGrid.scrollBy({ left: 300, behavior: 'smooth' });
-            });
-
-            // Enable mouse drag scrolling
-            let isDown = false;
-            let startX;
-            let scrollLeft;
-
-            bracketGrid.addEventListener('mousedown', (e) => {
-                isDown = true;
-                bracketGrid.style.cursor = 'grabbing';
-                startX = e.pageX - bracketGrid.offsetLeft;
-                scrollLeft = bracketGrid.scrollLeft;
-            });
-
-            bracketGrid.addEventListener('mouseleave', () => {
-                isDown = false;
-                bracketGrid.style.cursor = 'grab';
-            });
-
-            bracketGrid.addEventListener('mouseup', () => {
-                isDown = false;
-                bracketGrid.style.cursor = 'grab';
-            });
-
-            bracketGrid.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.pageX - bracketGrid.offsetLeft;
-                const walk = (x - startX) * 2;
-                bracketGrid.scrollLeft = scrollLeft - walk;
-            });
-        }
-    });
-</script>
 {% endblock %}

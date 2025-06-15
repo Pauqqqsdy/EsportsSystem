@@ -39,9 +39,6 @@
     </Compile>
     <Compile Include="app\forms.py" />
     <Compile Include="app\models.py" />
-    <Compile Include="app\templates\templatetags\dict_extras.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="app\tests.py" />
     <Compile Include="app\validators.py">
       <SubType>Code</SubType>
@@ -71,7 +68,6 @@
     <Folder Include="app\templates\app\teams\" />
     <Folder Include="app\templates\app\profile\" />
     <Folder Include="app\templates\app\tournaments\matches\" />
-    <Folder Include="app\templates\templatetags\" />
     <Folder Include="app\templates\registration\" />
     <Folder Include="EsportsSystem\" />
   </ItemGroup>

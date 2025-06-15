@@ -143,9 +143,6 @@ class TournamentForm(forms.ModelForm):
             self.fields[field].widget.attrs.update({'class': 'form-control'})
         tournament_format_choices = [('', '--------')] + list(Tournament.TOURNAMENT_FORMAT_CHOICES)
         self.fields['tournament_format'].choices = tournament_format_choices
-        if self.instance and self.instance.pk:
-            self.fields['discipline'].disabled = True
-            self.fields['game_format'].disabled = True
         if 'discipline' in self.data:
             try:
                 discipline = self.data.get('discipline')
@@ -154,7 +151,6 @@ class TournamentForm(forms.ModelForm):
                 pass
         elif self.instance.pk:
             self.update_game_format_choices(self.instance.discipline)
-        # Динамические choices для max_teams
         t_format = self.data.get('tournament_format') or (self.instance.tournament_format if self.instance else None)
         if t_format == 'round_robin':
             self.fields['max_teams'].choices = [(i, str(i)) for i in range(2, 21)]
@@ -230,8 +226,6 @@ class TournamentEditForm(TournamentForm):
         self.fields['discipline'].disabled = True
         self.fields['game_format'].disabled = True
         self.fields['tournament_format'].disabled = True
-        
-        # Обновляем choices для max_teams в зависимости от формата турнира
         if self.instance and self.instance.tournament_format:
             if self.instance.tournament_format == 'round_robin':
                 self.fields['max_teams'].choices = [(i, str(i)) for i in range(2, 21)]

@@ -377,6 +377,10 @@ def tournaments(request):
 
     if status == 'upcoming':
         tournaments_qs = tournaments_qs.filter(start_date__gt=timezone.now())
+    elif status == 'in_progress':
+        tournaments_qs = tournaments_qs.filter(start_date__lte=timezone.now())
+    elif status == 'completed':
+        tournaments_qs = tournaments_qs.filter(start_date__lt=timezone.now())
 
     context = {
         'tournaments': tournaments_qs,
@@ -967,45 +971,6 @@ def advanced_match_result(request, tournament_id, match_id):
         'match': match
     })
 
-def update_round_robin_results(match):
-    """Обновляет результаты турнирной таблицы после изменения результата матча"""
-    # Получаем результаты команд
-    team1_result = RoundRobinResult.objects.get(
-        table=match.table,
-        team=match.team1
-    )
-    team2_result = RoundRobinResult.objects.get(
-        table=match.table,
-        team=match.team2
-    )
-    
-    # Сбрасываем статистику
-    team1_result.wins = 0
-    team1_result.losses = 0
-    team1_result.points = 0
-    team2_result.wins = 0
-    team2_result.losses = 0
-    team2_result.points = 0
-    
-    # Пересчитываем статистику для всех матчей
-    for m in RoundRobinMatch.objects.filter(table=match.table):
-        if m.team1_score is not None and m.team2_score is not None:  # Проверяем наличие результата
-            if m.team1_score > m.team2_score:
-                team1_result.wins += 1
-                team1_result.points += 3
-                team2_result.losses += 1
-            elif m.team1_score < m.team2_score:
-                team2_result.wins += 1
-                team2_result.points += 3
-                team1_result.losses += 1
-            else:
-                team1_result.points += 1
-                team2_result.points += 1
-    
-    # Сохраняем обновленные результаты
-    team1_result.save()
-    team2_result.save()
-
 @login_required
 def round_robin_match_result(request, tournament_id, match_id):
     match = get_object_or_404(RoundRobinMatch, id=match_id)
@@ -1035,9 +1000,6 @@ def round_robin_match_result(request, tournament_id, match_id):
             match.team2_score = team2_score
             match.is_completed = True
             match.save()
-            
-            # Обновляем результаты в таблице
-            update_round_robin_results(match)
             
             messages.success(request, 'Результат матча успешно обновлен')
         else:

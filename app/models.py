@@ -467,31 +467,44 @@ class RoundRobinMatch(models.Model):
                 tournament.save()
     
     def update_table_results(self):
-        """Обновить результаты в таблице Round Robin"""
-        # Получаем или создаем результаты для обеих команд
-        result1, created1 = RoundRobinResult.objects.get_or_create(
-            table=self.table, team=self.team1
-        )
-        result2, created2 = RoundRobinResult.objects.get_or_create(
-            table=self.table, team=self.team2
-        )
-        # Если матч уже был учтен, не обновляем статистику повторно
-        if hasattr(self, '_results_updated'):
-            return
-        # Обновляем статистику
-        result1.matches_played += 1
-        result2.matches_played += 1
-        # Разница карт
-        result1.map_difference += self.team1_score - self.team2_score
-        result2.map_difference += self.team2_score - self.team1_score
-        if self.winner == self.team1:
-            result1.wins += 1
-            result1.points += 3
-            result2.losses += 1
-        elif self.winner == self.team2:
-            result2.wins += 1
-            result2.points += 3
-            result1.losses += 1
-        result1.save()
-        result2.save()
-        self._results_updated = True
+        """Пересчитать статистику для всех команд по всем завершённым матчам"""
+        from app.models import Team  # Импорт внутри метода, чтобы избежать циклических импортов
+        teams = set(RoundRobinMatch.objects.filter(table=self.table).values_list('team1', flat=True)) | \
+                set(RoundRobinMatch.objects.filter(table=self.table).values_list('team2', flat=True))
+        for team_id in teams:
+            team = Team.objects.get(id=team_id)
+            result, _ = RoundRobinResult.objects.get_or_create(table=self.table, team=team)
+            # Сброс статистики
+            result.matches_played = 0
+            result.wins = 0
+            result.losses = 0
+            result.points = 0
+            result.map_difference = 0
+            matches = RoundRobinMatch.objects.filter(
+                table=self.table
+            ).filter(
+                (models.Q(team1=team) | models.Q(team2=team)),
+                is_completed=True
+            )
+            for match in matches:
+                result.matches_played += 1
+                if match.team1 == team:
+                    result.map_difference += match.team1_score - match.team2_score
+                    if match.winner == team:
+                        result.wins += 1
+                        result.points += 3
+                    elif match.winner is not None:
+                        result.losses += 1
+                else:
+                    result.map_difference += match.team2_score - match.team1_score
+                    if match.winner == team:
+                        result.wins += 1
+                        result.points += 3
+                    elif match.winner is not None:
+                        result.losses += 1
+            result.save()
+
+    def get_status_display(self):
+        if self.is_completed:
+            return "Завершён"
+        return "Запланирован"
